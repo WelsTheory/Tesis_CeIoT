@@ -16,9 +16,4 @@ export const routes: Routes = [
     redirectTo: 'login',
     pathMatch: 'full',
   },
-  //{
-    //path: 'modulo',
-    //loadComponent: () => import('./listado-modulos/listado-modulos.page').then( m => m.ModuloPage)
-  //},
-
 ];

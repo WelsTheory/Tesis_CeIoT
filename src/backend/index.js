@@ -13,7 +13,7 @@ const corsOptions = {
 }
 
 const YOUR_SECRET_KEY = 'mi llave'
-var testUser = {username: 'wels', password: '1234'}
+var testUser = {username: 'test', password: '1234'}
 
 // to parse application/json
 app.use(express.json()); 
@@ -87,7 +87,7 @@ app.all('/secreto', function (req, res, next) {
 
 app.get('/', [cb0, cb1, cb2]);
 
-app.use(authenticator, routerDispositivos)
+app.use(authenticator, routerSensores)
 
 app.listen(PORT, function(req, res) {
     console.log("NodeJS API running correctly");

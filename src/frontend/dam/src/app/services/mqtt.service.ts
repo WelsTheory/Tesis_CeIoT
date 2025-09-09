@@ -1,5 +1,5 @@
 // src/app/services/mqtt.service.ts
-import { Injectable } from '@angular/core';
+/*import { Injectable } from '@angular/core';
 import { BehaviorSubject, Observable } from 'rxjs';
 
 // Declarar mqtt para TypeScript
@@ -321,30 +321,19 @@ export class MqttService {
 
   // Métodos públicos para la interfaz
   
-  /**
-   * Obtener estado actual de un módulo específico
-   */
+
   getEstadoModulo(moduloId: number): ModuloEstado | null {
     return this.estadosModulos.get(moduloId) || null;
   }
 
-  /**
-   * Obtener todos los estados de módulos
-   */
   getTodosLosEstados(): Map<number, ModuloEstado> {
     return new Map(this.estadosModulos);
   }
 
-  /**
-   * Verificar si MQTT está conectado
-   */
   isConnected(): boolean {
     return this.connected;
   }
 
-  /**
-   * Publicar mensaje MQTT
-   */
   publish(topic: string, message: any): void {
     if (this.connected && this.client) {
       const messageStr = typeof message === 'string' ? message : JSON.stringify(message);
@@ -355,9 +344,6 @@ export class MqttService {
     }
   }
 
-  /**
-   * Solicitar actualización de estado de un módulo específico
-   */
   solicitarActualizacionModulo(moduloId: number): void {
     this.publish(`modulos/${moduloId}/cmd/refresh`, {
       command: 'refresh_status',
@@ -365,9 +351,6 @@ export class MqttService {
     });
   }
 
-  /**
-   * Solicitar actualización de todos los módulos
-   */
   solicitarActualizacionTodos(): void {
     this.publish('modulos/all/cmd/refresh', {
       command: 'refresh_all_status',
@@ -375,9 +358,6 @@ export class MqttService {
     });
   }
 
-  /**
-   * Reconectar manualmente
-   */
   reconnect(): void {
     if (this.client) {
       console.log('🔄 Reconectando a MQTT...');
@@ -385,9 +365,6 @@ export class MqttService {
     }
   }
 
-  /**
-   * Desconectar
-   */
   disconnect(): void {
     if (this.client && this.connected) {
       console.log('🔌 Desconectando de MQTT...');
@@ -396,4 +373,4 @@ export class MqttService {
       this.connectionStatus.next(false);
     }
   }
-}
+}*/

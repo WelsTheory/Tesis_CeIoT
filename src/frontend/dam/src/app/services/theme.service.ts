@@ -1,5 +1,5 @@
 // src/app/services/theme.service.ts
-import { Injectable } from '@angular/core';
+/*import { Injectable } from '@angular/core';
 
 @Injectable({
   providedIn: 'root'
@@ -52,4 +52,4 @@ export class ThemeService {
   isDark(): boolean {
     return this.getCurrentTheme() === 'dark';
   }
-}
+}*/

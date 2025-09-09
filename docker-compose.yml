@@ -17,6 +17,7 @@ services:
         hostname:                mysql-server
         environment:
             MYSQL_ROOT_PASSWORD: userpass
+            MYSQL_DATABASE:      ProyectosSensores
         container_name:          mysql-server
         volumes:
             -                    ./db/dumps:/docker-entrypoint-initdb.d
@@ -25,6 +26,7 @@ services:
             -                    app-fullstack-net
         ports:
             -                    "3306:3306"
+        restart:                 unless-stopped
 
     mysql-admin:
         image:                   phpmyadmin/phpmyadmin
@@ -71,7 +73,7 @@ services:
         ports:
         - "8000:3000"
         command: >
-            sh -c "npm install && nodemon -L index.js"
+            sh -c "sleep 10 && npm install && nodemon -L index.js"
 
 networks:
     app-fullstack-net:

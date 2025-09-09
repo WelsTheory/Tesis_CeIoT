@@ -6,7 +6,7 @@ const config = {
     port: '3306',
     user: 'root',
     password: 'userpass',
-    database: 'CeIot'
+    database: 'ProyectosSensores'
 }
 
 const pool = mysql.createPool(config)

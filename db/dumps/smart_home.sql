@@ -12,6 +12,19 @@ SET time_zone = "+00:00";
 CREATE DATABASE IF NOT EXISTS `ProyectosSensores` DEFAULT CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
 USE `ProyectosSensores`;
 
+-- Agregar campo correo a la tabla usuarios
+ALTER TABLE `usuarios` 
+ADD COLUMN `correo` varchar(150) DEFAULT NULL COMMENT 'Correo electrónico del usuario' 
+AFTER `usuario`;
+
+-- Crear índice único para el correo
+ALTER TABLE `usuarios` 
+ADD UNIQUE KEY `uk_correo` (`correo`);
+
+-- Agregar índice para consultas por correo
+ALTER TABLE `usuarios` 
+ADD INDEX `idx_correo_activo` (`correo`, `activo`);
+
 -- ===================================================================
 -- 1. TABLA USUARIOS
 -- ===================================================================
@@ -273,6 +286,114 @@ DELIMITER ;
 
 CREATE INDEX `idx_lecturas_timestamp_proyecto` ON `lecturas` (`timestamp`, `proyecto_id`);
 CREATE INDEX `idx_parametros_fecha_actualizacion` ON `parametros_sensores` (`fecha_actualizacion`);
+
+-- ===================================================================
+-- PROCEDIMIENTO ACTUALIZADO PARA CREAR USUARIO CON CORREO
+-- ===================================================================
+
+CREATE PROCEDURE `sp_crear_usuario_completo`(
+    IN p_nombre VARCHAR(100),
+    IN p_correo VARCHAR(150),
+    IN p_usuario VARCHAR(50),
+    IN p_contrasena VARCHAR(255),
+    IN p_token VARCHAR(100)
+)
+BEGIN
+    DECLARE token_valido INT DEFAULT 0;
+    DECLARE usuario_existente INT DEFAULT 0;
+    DECLARE nuevo_usuario_id INT DEFAULT 0;
+    
+    DECLARE EXIT HANDLER FOR SQLEXCEPTION
+    BEGIN
+        ROLLBACK;
+        RESIGNAL;
+    END;
+    
+    START TRANSACTION;
+    
+    -- Validar token
+    SELECT COUNT(*) INTO token_valido
+    FROM `tokens_acceso`
+    WHERE `token` = p_token 
+      AND `activo` = 1
+      AND (`fecha_expiracion` IS NULL OR `fecha_expiracion` > NOW())
+      AND (`usos_restantes` IS NULL OR `usos_restantes` > 0);
+    
+    IF token_valido = 0 THEN
+        SIGNAL SQLSTATE '45000' SET MESSAGE_TEXT = 'Token de acceso inválido o expirado';
+    END IF;
+    
+    -- Verificar si el usuario o correo ya existen
+    SELECT COUNT(*) INTO usuario_existente
+    FROM `usuarios`
+    WHERE `usuario` = p_usuario OR `correo` = p_correo;
+    
+    IF usuario_existente > 0 THEN
+        SIGNAL SQLSTATE '45000' SET MESSAGE_TEXT = 'Usuario o correo ya registrados';
+    END IF;
+    
+    -- Crear el usuario
+    INSERT INTO `usuarios` (`nombre`, `correo`, `usuario`, `contrasena`) 
+    VALUES (p_nombre, p_correo, p_usuario, p_contrasena);
+    
+    SET nuevo_usuario_id = LAST_INSERT_ID();
+    
+    -- Actualizar uso del token si no es ilimitado
+    UPDATE `tokens_acceso`
+    SET `usos_restantes` = CASE 
+        WHEN `usos_restantes` IS NOT NULL THEN `usos_restantes` - 1
+        ELSE NULL
+    END
+    WHERE `token` = p_token;
+    
+    COMMIT;
+    
+    SELECT nuevo_usuario_id as `usuario_id`, 'Usuario creado exitosamente' as `mensaje`;
+END//
+
+DELIMITER ;
+
+-- ===================================================================
+-- VISTA ACTUALIZADA PARA USUARIOS CON CORREO
+-- ===================================================================
+
+CREATE OR REPLACE VIEW `v_usuarios_info` AS
+SELECT 
+    u.`usuario_id`,
+    u.`nombre`,
+    u.`correo`,
+    u.`usuario`,
+    u.`fecha_creacion`,
+    u.`fecha_actualizacion`,
+    u.`activo`,
+    COUNT(p.`proyecto_id`) AS `total_proyectos`,
+    CASE 
+        WHEN COUNT(p.`proyecto_id`) >= 2 THEN 'LIMITE_ALCANZADO'
+        WHEN COUNT(p.`proyecto_id`) = 1 THEN 'PUEDE_CREAR_UNO'
+        ELSE 'PUEDE_CREAR_DOS'
+    END AS `estado_proyectos`
+FROM `usuarios` u
+LEFT JOIN `proyectos` p ON u.`usuario_id` = p.`usuario_id` AND p.`activo` = 1
+WHERE u.`activo` = 1
+GROUP BY u.`usuario_id`;
+
+-- ===================================================================
+-- ACTUALIZAR DATOS DE EJEMPLO CON CORREOS
+-- ===================================================================
+
+-- Actualizar usuarios existentes con correos de ejemplo
+UPDATE `usuarios` SET `correo` = 'juan.perez@ejemplo.com' WHERE `usuario` = 'juan.perez';
+UPDATE `usuarios` SET `correo` = 'maria.garcia@ejemplo.com' WHERE `usuario` = 'maria.garcia';
+
+-- ===================================================================
+-- ÍNDICES ADICIONALES PARA OPTIMIZACIÓN
+-- ===================================================================
+
+-- Índice compuesto para búsquedas de login
+CREATE INDEX `idx_login_lookup` ON `usuarios` (`usuario`, `activo`, `contrasena`);
+
+-- Índice para consultas de tokens activos
+CREATE INDEX `idx_tokens_activos` ON `tokens_acceso` (`activo`, `fecha_expiracion`, `usos_restantes`);
 
 -- ===================================================================
 -- 11. DATOS DE EJEMPLO

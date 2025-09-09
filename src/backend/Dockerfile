@@ -4,7 +4,7 @@ RUN npm install -g nodemon
 
 WORKDIR /src/backend
 
-COPY package.json .
+COPY package*.json ./
 
 RUN npm install
 

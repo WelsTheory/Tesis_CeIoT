@@ -1,7 +1,7 @@
 {
-  "name": "daw_project",
+  "name": "sensor-portal-backend",
   "version": "1.0.0",
-  "description": "",
+  "description": "Backend para portal de sensores IoT",
   "main": "index.js",
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1"
@@ -9,10 +9,12 @@
   "author": "Williams Limonchi",
   "license": "MIT",
   "dependencies": {
+    "bcryptjs": "^2.4.3",
     "cors": "^2.8.5",
-    "express": "^4.17.1",
-    "jsonwebtoken": "~8.5.1",
+    "express": "^4.18.2",
+    "jsonwebtoken": "^9.0.2",
+    "mqtt": "^5.0.0",
     "mysql": "^2.18.1",
-    "mqtt":"^5.0.0"
+    "validator": "^13.15.15"
   }
 }

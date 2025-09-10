@@ -82,7 +82,7 @@ export class HomePage implements OnInit {
   }
 
   ngOnInit() {
-    this.loadUserProjects();
+    this.Projects();
     this.getCurrentUser();
   }
 
@@ -90,9 +90,10 @@ export class HomePage implements OnInit {
   private initializeForms() {
     this.createProjectForm = this.formBuilder.group({
       nombre: ['', [Validators.required, Validators.minLength(3), Validators.maxLength(100)]],
-      sensor: ['MPU', [Validators.required]]
+      sensor: ['MPU', [Validators.required]],
+      mqttUrl: ['mqtt://broker.hivemq.com:1883', [Validators.required]] // ← AGREGAR ESTA LÍNEA
     });
-
+  
     this.editProjectForm = this.formBuilder.group({
       nombre: ['', [Validators.required, Validators.minLength(3), Validators.maxLength(100)]],
       sensor: ['', [Validators.required]],
@@ -113,15 +114,26 @@ export class HomePage implements OnInit {
     return this.projects.filter(project => project.activo).length;
   }
 
-  // Load user projects from API
-  private async loadUserProjects() {
-    try {
-      this.loading = true;
-      
-      // Simulate API call
-      await this.simulateApiCall();
-      
-      // Sample data with active/inactive projects
+  // Load user projects from API - CON PERSISTENCIA
+private async loadUserProjects() {
+  try {
+    this.loading = true;
+    
+    // Simulate API call
+    await this.simulateApiCall();
+    
+    // Intentar cargar proyectos desde localStorage primero
+    const savedProjects = localStorage.getItem('userProjects');
+    
+    if (savedProjects) {
+      // Si hay proyectos guardados, usarlos
+      this.projects = JSON.parse(savedProjects).map((project: any) => ({
+        ...project,
+        fechaCreacion: new Date(project.fechaCreacion) // Convertir fecha
+      }));
+      console.log('✅ Proyectos cargados desde localStorage:', this.projects.length);
+    } else {
+      // Si no hay proyectos guardados, usar datos de ejemplo
       this.projects = [
         {
           id: 1,
@@ -138,24 +150,124 @@ export class HomePage implements OnInit {
           sensor: 'MPU',
           fechaCreacion: new Date('2024-08-15'),
           ultimaLectura: '2024-09-08 10:25:00',
-          activo: false, // Project disabled
+          activo: false,
           topico: 'fabrica/maquina1/vibracion'
         }
       ];
-
-      // Real API call would be:
-      /*
-      const response = await this.projectService.getUserProjects();
-      this.projects = response.data;
-      */
-
-    } catch (error) {
-      console.error('Error loading projects:', error);
-      await this.showToast('Error al cargar los proyectos', 'danger');
-    } finally {
-      this.loading = false;
+      
+      // Guardar los datos iniciales en localStorage
+      this.saveProjectsToStorage();
+      console.log('📦 Proyectos iniciales guardados en localStorage');
     }
+
+    // Real API call would be:
+    /*
+    const response = await this.projectService.getUserProjects();
+    this.projects = response.data;
+    */
+
+  } catch (error) {
+    console.error('Error loading projects:', error);
+    await this.showToast('Error al cargar los proyectos', 'danger');
+  } finally {
+    this.loading = false;
   }
+}
+
+// Método para guardar proyectos en localStorage
+private saveProjectsToStorage() {
+  try {
+    localStorage.setItem('userProjects', JSON.stringify(this.projects));
+    console.log('💾 Proyectos guardados en localStorage');
+  } catch (error) {
+    console.error('Error guardando proyectos:', error);
+  }
+}
+
+// Actualizar método deleteProject para que persista los cambios
+async deleteProject(project: Project) {
+  try {
+    const loading = await this.loadingController.create({
+      message: 'Eliminando proyecto...',
+      duration: 3000
+    });
+    await loading.present();
+
+    // Simulate API call
+    await this.simulateApiCall();
+
+    // Remove from array
+    this.projects = this.projects.filter(p => p.id !== project.id);
+    
+    // GUARDAR CAMBIOS EN LOCALSTORAGE
+    this.saveProjectsToStorage();
+
+    // Real API call:
+    /*
+    await this.projectService.deleteProject(project.id);
+    await this.loadUserProjects();
+    */
+
+    await loading.dismiss();
+    await this.showToast('Proyecto eliminado exitosamente', 'success');
+
+  } catch (error) {
+    console.error('Error deleting project:', error);
+    await this.showToast('Error al eliminar el proyecto', 'danger');
+  }
+}
+
+// También actualizar createProject para persistir
+async createProject() {
+  if (this.createProjectForm.invalid || this.projects.length >= 2) {
+    this.markFormGroupTouched(this.createProjectForm);
+    return;
+  }
+
+  try {
+    this.isCreatingProject = true;
+    
+    const formData = this.createProjectForm.value;
+    const topicName = this.getGeneratedTopic();
+    const fullMqttUrl = this.getFullMqttUrl();
+    
+    const projectData: CreateProjectData = {
+      nombre: formData.nombre,
+      sensor: formData.sensor,
+      topico: topicName,
+      enlaceTopico: fullMqttUrl
+    };
+
+    // Simulate API call
+    await this.simulateApiCall();
+
+    // Create new project object
+    const newProject: Project = {
+      id: Date.now(), // Use timestamp as ID for demo
+      nombre: projectData.nombre,
+      sensor: projectData.sensor,
+      fechaCreacion: new Date(),
+      ultimaLectura: 'Sin lecturas',
+      activo: true,
+      topico: projectData.topico!,
+      enlaceTopico: projectData.enlaceTopico
+    };
+
+    this.projects.push(newProject);
+    
+    // GUARDAR CAMBIOS EN LOCALSTORAGE
+    this.saveProjectsToStorage();
+
+    await this.showToast('Proyecto creado exitosamente', 'success');
+    this.closeCreateProjectModal();
+
+  } catch (error) {
+    console.error('Error creating project:', error);
+    await this.showToast('Error al crear el proyecto', 'danger');
+  } finally {
+    this.isCreatingProject = false;
+  }
+}
 
   // Simulate API call delay
   private simulateApiCall(): Promise<void> {
@@ -170,13 +282,23 @@ export class HomePage implements OnInit {
 
   // Open create project modal
   openCreateProjectModal() {
+    console.log('🔍 openCreateProjectModal llamado');
+    console.log('📊 Número actual de proyectos:', this.projects.length);
+    console.log('🚪 Estado showCreateModal antes:', this.showCreateModal);
+    
     if (this.projects.length >= 2) {
+      console.log('⚠️ Límite alcanzado, mostrando alerta');
       this.showLimitAlert();
       return;
     }
+    
+    console.log('✅ Abriendo modal...');
     this.showCreateModal = true;
+    console.log('🚪 Estado showCreateModal después:', this.showCreateModal);
+    
     this.createProjectForm.reset();
     this.createProjectForm.patchValue({ sensor: 'MPU' });
+    console.log('📝 Formulario reiniciado y configurado');
   }
 
   // Close create project modal
@@ -342,36 +464,160 @@ export class HomePage implements OnInit {
 
   // Update project status
   private async updateProjectStatus(project: Project, newStatus: boolean) {
-    try {
-      const loading = await this.loadingController.create({
-        message: newStatus ? 'Habilitando proyecto...' : 'Deshabilitando proyecto...',
-        duration: 2000
-      });
-      await loading.present();
-
-      // Simulate API call
-      await this.simulateApiCall();
-
-      // Update project status
-      const projectIndex = this.projects.findIndex(p => p.id === project.id);
-      if (projectIndex !== -1) {
-        this.projects[projectIndex].activo = newStatus;
-      }
-
-      // Real API call:
-      /*
-      await this.projectService.updateProjectStatus(project.id, newStatus);
-      */
-
-      await loading.dismiss();
+    // Load user projects from API - CON PERSISTENCIA
+private async loadUserProjects() {
+  try {
+    this.loading = true;
+    
+    // Simulate API call
+    await this.simulateApiCall();
+    
+    // Intentar cargar proyectos desde localStorage primero
+    const savedProjects = localStorage.getItem('userProjects');
+    
+    if (savedProjects) {
+      // Si hay proyectos guardados, usarlos
+      this.projects = JSON.parse(savedProjects).map((project: any) => ({
+        ...project,
+        fechaCreacion: new Date(project.fechaCreacion) // Convertir fecha
+      }));
+      console.log('✅ Proyectos cargados desde localStorage:', this.projects.length);
+    } else {
+      // Si no hay proyectos guardados, usar datos de ejemplo
+      this.projects = [
+        {
+          id: 1,
+          nombre: 'Proyecto Movimiento Casa',
+          sensor: 'MPU',
+          fechaCreacion: new Date('2024-09-01'),
+          ultimaLectura: '2024-09-08 10:30:00',
+          activo: true,
+          topico: 'casa/movimiento'
+        },
+        {
+          id: 2,
+          nombre: 'Proyecto Vibración Máquina',
+          sensor: 'MPU',
+          fechaCreacion: new Date('2024-08-15'),
+          ultimaLectura: '2024-09-08 10:25:00',
+          activo: false,
+          topico: 'fabrica/maquina1/vibracion'
+        }
+      ];
       
-      const message = newStatus ? 'Proyecto habilitado exitosamente' : 'Proyecto deshabilitado exitosamente';
-      await this.showToast(message, 'success');
-
-    } catch (error) {
-      console.error('Error updating project status:', error);
-      await this.showToast('Error al cambiar el estado del proyecto', 'danger');
+      // Guardar los datos iniciales en localStorage
+      this.saveProjectsToStorage();
+      console.log('📦 Proyectos iniciales guardados en localStorage');
     }
+
+    // Real API call would be:
+    /*
+    const response = await this.projectService.getUserProjects();
+    this.projects = response.data;
+    */
+
+  } catch (error) {
+    console.error('Error loading projects:', error);
+    await this.showToast('Error al cargar los proyectos', 'danger');
+  } finally {
+    this.loading = false;
+  }
+}
+
+// Método para guardar proyectos en localStorage
+private saveProjectsToStorage() {
+  try {
+    localStorage.setItem('userProjects', JSON.stringify(this.projects));
+    console.log('💾 Proyectos guardados en localStorage');
+  } catch (error) {
+    console.error('Error guardando proyectos:', error);
+  }
+}
+
+// Actualizar método deleteProject para que persista los cambios
+async deleteProject(project: Project) {
+  try {
+    const loading = await this.loadingController.create({
+      message: 'Eliminando proyecto...',
+      duration: 3000
+    });
+    await loading.present();
+
+    // Simulate API call
+    await this.simulateApiCall();
+
+    // Remove from array
+    this.projects = this.projects.filter(p => p.id !== project.id);
+    
+    // GUARDAR CAMBIOS EN LOCALSTORAGE
+    this.saveProjectsToStorage();
+
+    // Real API call:
+    /*
+    await this.projectService.deleteProject(project.id);
+    await this.loadUserProjects();
+    */
+
+    await loading.dismiss();
+    await this.showToast('Proyecto eliminado exitosamente', 'success');
+
+  } catch (error) {
+    console.error('Error deleting project:', error);
+    await this.showToast('Error al eliminar el proyecto', 'danger');
+  }
+}
+
+// También actualizar createProject para persistir
+async createProject() {
+  if (this.createProjectForm.invalid || this.projects.length >= 2) {
+    this.markFormGroupTouched(this.createProjectForm);
+    return;
+  }
+
+  try {
+    this.isCreatingProject = true;
+    
+    const formData = this.createProjectForm.value;
+    const topicName = this.getGeneratedTopic();
+    const fullMqttUrl = this.getFullMqttUrl();
+    
+    const projectData: CreateProjectData = {
+      nombre: formData.nombre,
+      sensor: formData.sensor,
+      topico: topicName,
+      enlaceTopico: fullMqttUrl
+    };
+
+    // Simulate API call
+    await this.simulateApiCall();
+
+    // Create new project object
+    const newProject: Project = {
+      id: Date.now(), // Use timestamp as ID for demo
+      nombre: projectData.nombre,
+      sensor: projectData.sensor,
+      fechaCreacion: new Date(),
+      ultimaLectura: 'Sin lecturas',
+      activo: true,
+      topico: projectData.topico!,
+      enlaceTopico: projectData.enlaceTopico
+    };
+
+    this.projects.push(newProject);
+    
+    // GUARDAR CAMBIOS EN LOCALSTORAGE
+    this.saveProjectsToStorage();
+
+    await this.showToast('Proyecto creado exitosamente', 'success');
+    this.closeCreateProjectModal();
+
+  } catch (error) {
+    console.error('Error creating project:', error);
+    await this.showToast('Error al crear el proyecto', 'danger');
+  } finally {
+    this.isCreatingProject = false;
+  }
+}
   }
 
   // ===================================================================
@@ -583,4 +829,44 @@ export class HomePage implements OnInit {
 
     return 'Campo inválido';
   }
+  // ===================================================================
+  // FORM EVENT HANDLERS AND GENERATORS
+  // ===================================================================
+
+  // Method called when project name changes
+  onProjectNameChange() {
+    // Optional: Add any logic needed when project name changes
+    // For example, you could validate the name or update other properties
+    // This method can be empty if you only need the event for reactivity
+  }
+
+  // Method called when sensor selection changes
+  onSensorChange() {
+    // Optional: Add logic when sensor changes
+    // For example, update sensor-specific configurations
+    // This method can be empty if you only need the event for reactivity
+  }
+
+  // Generate MQTT topic automatically based on project name and sensor
+  getGeneratedTopic(): string {
+    const formData = this.createProjectForm.value;
+    if (formData.nombre && formData.sensor) {
+      // Generate topic based on project name and sensor
+      const projectName = formData.nombre.toLowerCase()
+        .replace(/\s+/g, '_')           // Replace spaces with underscores
+        .replace(/[^a-z0-9_]/g, '')     // Remove special characters
+        .substring(0, 30);              // Limit length
+      const sensor = formData.sensor.toLowerCase();
+      return `${projectName}/${sensor}/data`;
+    }
+    return 'proyecto/sensor/data';
+  }
+
+  // Get full MQTT URL (for display purposes)
+  getFullMqttUrl(): string {
+    const topic = this.getGeneratedTopic();
+    const mqttUrl = this.createProjectForm.get('mqttUrl')?.value || 'mqtt://broker.hivemq.com:1883';
+    return `${mqttUrl}/${topic}`;
+  }
+
 }

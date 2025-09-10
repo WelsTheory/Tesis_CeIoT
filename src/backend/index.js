@@ -19,6 +19,8 @@ app.use(cors(corsOptions))
 // Middleware de autenticación
 var authenticator = function (req, res, next) {
     let autHeader = (req.headers.authorization || '')
+    let token;  // Declarar la variable token
+    
     if (autHeader.startsWith('Bearer ')) {
         token = autHeader.split(' ')[1]
     } else {
@@ -37,7 +39,7 @@ app.get('/', function(req, res) {
     res.send({mensaje: 'API funcionando correctamente'}).status(200)
 })
 
-// Login básico (manteniendo el original para testing)
+// Login actualizado - verificar base de datos primero
 app.post('/login', (req, res) => {
     console.log('🔐 Intento de login:', req.body?.username)
     
@@ -55,45 +57,27 @@ app.post('/login', (req, res) => {
         });
     }
 
-    // Login de prueba (temporal)
-    if (username === 'test' && password === '1234') {
-        const userData = { username: 'test', nombre: 'Usuario Test' };
-        const token = jwt.sign(userData, YOUR_SECRET_KEY, { expiresIn: '24h' });
-        
-        console.log('✅ Login exitoso para usuario test')
-        return res.status(200).send({
-            success: true,
-            signed_user: userData,
-            token: token
-        });
-    }
+    // Conectar a la base de datos primero
+    const pool = require('./mysql-connector');
+    
+    const query = 'SELECT usuario_id, nombre, usuario, contrasena, activo FROM usuarios WHERE usuario = ? AND activo = 1';
+    
+    pool.query(query, [username], (err, results) => {
+        if (err) {
+            console.error('❌ Error al consultar usuario:', err.message);
+            return res.status(500).send({
+                errorMessage: 'Error interno del servidor'
+            });
+        }
 
-    // Intentar login con base de datos
-    try {
-        const pool = require('./mysql-connector');
-        
-        const query = 'SELECT usuario_id, nombre, usuario, contrasena, activo FROM usuarios WHERE usuario = ? AND activo = 1';
-        
-        pool.query(query, [username], (err, results) => {
-            if (err) {
-                console.error('❌ Error al consultar usuario:', err.message);
-                return res.status(500).send({
-                    errorMessage: 'Error interno del servidor'
-                });
-            }
-
-            if (results.length === 0) {
-                console.log('❌ Usuario no encontrado:', username)
-                return res.status(403).send({
-                    errorMessage: 'Usuario o contraseña incorrectos'
-                });
-            }
-
+        if (results.length > 0) {
+            // Usuario encontrado en base de datos
             const user = results[0];
+            console.log('✅ Usuario encontrado en BD:', username);
             
-            // Por ahora, comparación simple (sin bcrypt para testing)
-            // En producción usar bcrypt.compare()
-            if (password === 'password' || user.contrasena.includes(password)) {
+            // Por ahora, comparación simple de contraseña
+            // TODO: Implementar bcrypt cuando esté listo
+            if (password === user.contrasena || password === 'password') {
                 const userData = {
                     usuario_id: user.usuario_id,
                     username: user.usuario,
@@ -102,26 +86,38 @@ app.post('/login', (req, res) => {
 
                 const token = jwt.sign(userData, YOUR_SECRET_KEY, { expiresIn: '24h' });
                 
-                console.log('✅ Login exitoso para:', username)
-                res.status(200).send({
+                console.log('✅ Login exitoso para usuario BD:', username)
+                return res.status(200).send({
                     success: true,
                     signed_user: userData,
                     token: token
                 });
             } else {
                 console.log('❌ Contraseña incorrecta para:', username)
-                res.status(403).send({
+                return res.status(403).send({
                     errorMessage: 'Usuario o contraseña incorrectos'
                 });
             }
-        });
-
-    } catch (error) {
-        console.error('❌ Error en login:', error.message);
-        res.status(500).send({
-            errorMessage: 'Error interno del servidor'
-        });
-    }
+        } else {
+            // Si no se encuentra en BD, probar usuario de prueba
+            if (username === 'test' && password === '1234') {
+                const userData = { username: 'test', nombre: 'Usuario Test' };
+                const token = jwt.sign(userData, YOUR_SECRET_KEY, { expiresIn: '24h' });
+                
+                console.log('✅ Login exitoso para usuario test')
+                return res.status(200).send({
+                    success: true,
+                    signed_user: userData,
+                    token: token
+                });
+            } else {
+                console.log('❌ Usuario no encontrado:', username)
+                return res.status(403).send({
+                    errorMessage: 'Usuario o contraseña incorrectos'
+                });
+            }
+        }
+    });
 });
 
 // Endpoint de registro básico

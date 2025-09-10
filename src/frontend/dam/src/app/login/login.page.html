@@ -1,15 +1,8 @@
-<!-- Ocultar header para replicar diseño original -->
-<!-- <ion-header>
-  <ion-toolbar>
-    <ion-buttons slot="start">
-      <ion-menu-button></ion-menu-button>
-    </ion-buttons>
-    <ion-title>Portal de Sensores</ion-title>
-  </ion-toolbar>
-</ion-header> -->
+<!-- No header - pantalla completa como la imagen -->
 
 <ion-content class="login-content">
   <div class="container">
+    <!-- LADO IZQUIERDO - INFORMACIÓN DEL PORTAL -->
     <div class="welcome-section">
       <div class="welcome-content">
         <div class="sensor-icon">📊</div>
@@ -23,9 +16,11 @@
       </div>
     </div>
 
+    <!-- LADO DERECHO - FORMULARIOS -->
     <div class="form-section">
       <div class="form-container">
-        <!-- Toggle entre Login y Registro -->
+        
+        <!-- TOGGLE ENTRE LOGIN Y REGISTRO - SIEMPRE VISIBLE -->
         <div class="form-toggle">
           <ion-button 
             fill="clear" 
@@ -41,356 +36,208 @@
           </ion-button>
         </div>
 
-        <!-- Mensajes de error y éxito -->
-        <ion-card class="message-card error" *ngIf="errorMessage">
-          <ion-card-content>
-            <ion-icon name="alert-circle-outline"></ion-icon>
-            {{ errorMessage }}
-          </ion-card-content>
-        </ion-card>
-
-        <ion-card class="message-card success" *ngIf="successMessage">
-          <ion-card-content>
-            <ion-icon name="checkmark-circle-outline"></ion-icon>
-            {{ successMessage }}
-          </ion-card-content>
-        </ion-card>
-
-        <!-- Formulario de Login -->
-        <form *ngIf="currentForm === 'login'" [formGroup]="loginForm" (ngSubmit)="onLogin()" class="auth-form active">
-          <h2>Iniciar Sesión</h2>
+        <!-- ÁREA DE CONTENIDO CON SCROLL -->
+        <div class="form-content">
           
-          <div class="form-group">
-            <ion-item class="form-item">
-              <ion-label position="stacked">Usuario</ion-label>
-              <ion-input 
-                formControlName="usuario"
-                type="text" 
-                placeholder="Ingresa tu nombre de usuario"
-                [class.error]="loginForm.get('usuario')?.invalid && loginForm.get('usuario')?.touched">
-              </ion-input>
-            </ion-item>
-            <div class="error-text" *ngIf="loginForm.get('usuario')?.invalid && loginForm.get('usuario')?.touched">
-              El usuario es requerido
-            </div>
-          </div>
+          <!-- MENSAJES DE ESTADO -->
+          <ion-card class="message-card error" *ngIf="errorMessage">
+            <ion-card-content>
+              <ion-icon name="alert-circle-outline"></ion-icon>
+              {{ errorMessage }}
+            </ion-card-content>
+          </ion-card>
 
-          <div class="form-group">
-            <div class="password-container">
-              <ion-item class="form-item">
-                <ion-label position="stacked">Contraseña</ion-label>
+          <ion-card class="message-card success" *ngIf="successMessage">
+            <ion-card-content>
+              <ion-icon name="checkmark-circle-outline"></ion-icon>
+              {{ successMessage }}
+            </ion-card-content>
+          </ion-card>
+
+          <!-- FORMULARIO DE LOGIN -->
+          <form *ngIf="currentForm === 'login'" [formGroup]="loginForm" (ngSubmit)="onLogin()" class="auth-form active">
+            <h2>Iniciar Sesión</h2>
+            
+            <div class="form-group">
+              <ion-item class="form-item" lines="none">
+                <ion-label position="stacked">Usuario</ion-label>
                 <ion-input 
-                  formControlName="password"
-                  [type]="showLoginPassword ? 'text' : 'password'"
-                  placeholder="Ingresa tu contraseña"
-                  [class.error]="loginForm.get('password')?.invalid && loginForm.get('password')?.touched">
+                  formControlName="usuario"
+                  type="text" 
+                  placeholder="Ingresa tu nombre de usuario"
+                  [class.error]="loginForm.get('usuario')?.invalid && loginForm.get('usuario')?.touched">
                 </ion-input>
+              </ion-item>
+              <div class="error-text" *ngIf="loginForm.get('usuario')?.invalid && loginForm.get('usuario')?.touched">
+                El usuario es requerido
+              </div>
+            </div>
+
+            <div class="form-group">
+              <div class="password-container">
+                <ion-item class="form-item" lines="none">
+                  <ion-label position="stacked">Contraseña</ion-label>
+                  <ion-input 
+                    formControlName="password"
+                    [type]="showLoginPassword ? 'text' : 'password'"
+                    placeholder="Ingresa tu contraseña"
+                    [class.error]="loginForm.get('password')?.invalid && loginForm.get('password')?.touched">
+                  </ion-input>
+                </ion-item>
                 <ion-button 
                   fill="clear" 
-                  slot="end" 
                   (click)="togglePasswordVisibility('login')"
                   class="password-toggle-btn">
                   {{ showLoginPassword ? '🙈' : '👁️' }}
                 </ion-button>
-              </ion-item>
+              </div>
+              <div class="error-text" *ngIf="loginForm.get('password')?.invalid && loginForm.get('password')?.touched">
+                La contraseña es requerida
+              </div>
             </div>
-            <div class="error-text" *ngIf="loginForm.get('password')?.invalid && loginForm.get('password')?.touched">
-              La contraseña es requerida
-            </div>
-          </div>
 
-          <ion-button 
-            type="submit" 
-            expand="block" 
-            [disabled]="loginForm.invalid || isLoading"
-            [class.loading]="isLoading"
-            class="submit-btn">
-            <ion-spinner name="crescent" *ngIf="isLoading"></ion-spinner>
-            <span *ngIf="!isLoading">Ingresar al Portal</span>
-            <span *ngIf="isLoading">Ingresando...</span>
-          </ion-button>
-        </form>
+            <ion-button 
+              type="submit" 
+              expand="block" 
+              [disabled]="loginForm.invalid || isLoading"
+              [class.loading]="isLoading"
+              class="submit-btn">
+              <span *ngIf="!isLoading">Ingresar al Portal</span>
+              <span *ngIf="isLoading">Ingresando...</span>
+            </ion-button>
+          </form>
 
-        <!-- Formulario de Registro -->
-        <form *ngIf="currentForm === 'register'" [formGroup]="registerForm" (ngSubmit)="onRegister()" class="auth-form active">
-          <h2>Crear Cuenta</h2>
-          
-          <div class="form-group">
-            <ion-item class="form-item">
-              <ion-label position="stacked">Nombre Completo</ion-label>
-              <ion-input 
-                formControlName="nombre"
-                type="text" 
-                placeholder="Ingresa tu nombre completo"
-                [class.error]="registerForm.get('nombre')?.invalid && registerForm.get('nombre')?.touched">
-              </ion-input>
-            </ion-item>
-            <div class="error-text" *ngIf="registerForm.get('nombre')?.invalid && registerForm.get('nombre')?.touched">
-              El nombre es requerido
-            </div>
-          </div>
-
-          <div class="form-group">
-            <ion-item class="form-item">
-              <ion-label position="stacked">Correo Electrónico</ion-label>
-              <ion-input 
-                formControlName="correo"
-                type="email" 
-                placeholder="ejemplo@correo.com"
-                [class.error]="registerForm.get('correo')?.invalid && registerForm.get('correo')?.touched">
-              </ion-input>
-            </ion-item>
-            <div class="error-text" *ngIf="registerForm.get('correo')?.invalid && registerForm.get('correo')?.touched">
-              <span *ngIf="registerForm.get('correo')?.errors?.['required']">El correo es requerido</span>
-              <span *ngIf="registerForm.get('correo')?.errors?.['email']">Formato de correo inválido</span>
-            </div>
-          </div>
-
-          <div class="form-group">
-            <ion-item class="form-item">
-              <ion-label position="stacked">Nombre de Usuario</ion-label>
-              <ion-input 
-                formControlName="usuario"
-                type="text" 
-                placeholder="Elige un nombre de usuario único"
-                [class.error]="registerForm.get('usuario')?.invalid && registerForm.get('usuario')?.touched">
-              </ion-input>
-            </ion-item>
-            <div class="error-text" *ngIf="registerForm.get('usuario')?.invalid && registerForm.get('usuario')?.touched">
-              El nombre de usuario es requerido
-            </div>
-          </div>
-
-          <div class="form-group">
-            <ion-item class="form-item">
-              <ion-label position="stacked">Token de Acceso</ion-label>
-              <ion-input 
-                formControlName="token"
-                type="text" 
-                placeholder="Ingresa tu token de acceso"
-                [class.error]="registerForm.get('token')?.invalid && registerForm.get('token')?.touched">
-              </ion-input>
-            </ion-item>
-            <div class="token-help">Token proporcionado por el administrador del sistema</div>
-            <div class="error-text" *ngIf="registerForm.get('token')?.invalid && registerForm.get('token')?.touched">
-              <span *ngIf="registerForm.get('token')?.errors?.['required']">El token es requerido</span>
-              <span *ngIf="registerForm.get('token')?.errors?.['minlength']">El token debe tener al menos 6 caracteres</span>
-            </div>
-          </div>
-
-          <div class="form-group">
-            <div class="password-container">
-              <ion-item class="form-item">
-                <ion-label position="stacked">Contraseña</ion-label>
+          <!-- FORMULARIO DE REGISTRO -->
+          <form *ngIf="currentForm === 'register'" [formGroup]="registerForm" (ngSubmit)="onRegister()" class="auth-form active">
+            <h2>Crear Cuenta</h2>
+            
+            <div class="form-group">
+              <ion-item class="form-item" lines="none">
+                <ion-label position="stacked">Nombre Completo</ion-label>
                 <ion-input 
-                  formControlName="password"
-                  [type]="showRegisterPassword ? 'text' : 'password'"
-                  placeholder="Crea una contraseña segura"
-                  [class.error]="registerForm.get('password')?.invalid && registerForm.get('password')?.touched"
-                  (ionInput)="checkPasswordStrength()">
+                  formControlName="nombre"
+                  type="text" 
+                  placeholder="Ingresa tu nombre completo"
+                  [class.error]="registerForm.get('nombre')?.invalid && registerForm.get('nombre')?.touched">
                 </ion-input>
+              </ion-item>
+              <div class="error-text" *ngIf="registerForm.get('nombre')?.invalid && registerForm.get('nombre')?.touched">
+                El nombre es requerido
+              </div>
+            </div>
+
+            <div class="form-group">
+              <ion-item class="form-item" lines="none">
+                <ion-label position="stacked">Correo Electrónico</ion-label>
+                <ion-input 
+                  formControlName="correo"
+                  type="email" 
+                  placeholder="ejemplo@correo.com"
+                  [class.error]="registerForm.get('correo')?.invalid && registerForm.get('correo')?.touched">
+                </ion-input>
+              </ion-item>
+              <div class="error-text" *ngIf="registerForm.get('correo')?.invalid && registerForm.get('correo')?.touched">
+                <span *ngIf="registerForm.get('correo')?.errors?.['required']">El correo es requerido</span>
+                <span *ngIf="registerForm.get('correo')?.errors?.['email']">Formato de correo inválido</span>
+              </div>
+            </div>
+
+            <div class="form-group">
+              <ion-item class="form-item" lines="none">
+                <ion-label position="stacked">Nombre de Usuario</ion-label>
+                <ion-input 
+                  formControlName="usuario"
+                  type="text" 
+                  placeholder="Elige un nombre de usuario único"
+                  [class.error]="registerForm.get('usuario')?.invalid && registerForm.get('usuario')?.touched">
+                </ion-input>
+              </ion-item>
+              <div class="error-text" *ngIf="registerForm.get('usuario')?.invalid && registerForm.get('usuario')?.touched">
+                El nombre de usuario es requerido
+              </div>
+            </div>
+
+            <div class="form-group">
+              <ion-item class="form-item" lines="none">
+                <ion-label position="stacked">Token de Acceso</ion-label>
+                <ion-input 
+                  formControlName="token"
+                  type="text" 
+                  placeholder="Ingresa tu token de acceso"
+                  [class.error]="registerForm.get('token')?.invalid && registerForm.get('token')?.touched">
+                </ion-input>
+              </ion-item>
+              <div class="token-help">Token proporcionado por el administrador del sistema</div>
+              <div class="error-text" *ngIf="registerForm.get('token')?.invalid && registerForm.get('token')?.touched">
+                <span *ngIf="registerForm.get('token')?.errors?.['required']">El token es requerido</span>
+                <span *ngIf="registerForm.get('token')?.errors?.['minlength']">El token debe tener al menos 6 caracteres</span>
+              </div>
+            </div>
+
+            <div class="form-group">
+              <div class="password-container">
+                <ion-item class="form-item" lines="none">
+                  <ion-label position="stacked">Contraseña</ion-label>
+                  <ion-input 
+                    formControlName="password"
+                    [type]="showRegisterPassword ? 'text' : 'password'"
+                    placeholder="Crea una contraseña segura"
+                    [class.error]="registerForm.get('password')?.invalid && registerForm.get('password')?.touched"
+                    (ionInput)="checkPasswordStrength()">
+                  </ion-input>
+                </ion-item>
                 <ion-button 
                   fill="clear" 
-                  slot="end" 
                   (click)="togglePasswordVisibility('register')"
                   class="password-toggle-btn">
                   {{ showRegisterPassword ? '🙈' : '👁️' }}
                 </ion-button>
-              </ion-item>
+              </div>
+              <div class="password-strength" [ngClass]="passwordStrength.class" *ngIf="registerForm.get('password')?.value">
+                {{ passwordStrength.text }}
+              </div>
+              <div class="error-text" *ngIf="registerForm.get('password')?.invalid && registerForm.get('password')?.touched">
+                <span *ngIf="registerForm.get('password')?.errors?.['required']">La contraseña es requerida</span>
+                <span *ngIf="registerForm.get('password')?.errors?.['minlength']">La contraseña debe tener al menos 8 caracteres</span>
+              </div>
             </div>
-            <div class="password-strength" [ngClass]="passwordStrength.class" *ngIf="registerForm.get('password')?.value">
-              {{ passwordStrength.text }}
-            </div>
-            <div class="error-text" *ngIf="registerForm.get('password')?.invalid && registerForm.get('password')?.touched">
-              <span *ngIf="registerForm.get('password')?.errors?.['required']">La contraseña es requerida</span>
-              <span *ngIf="registerForm.get('password')?.errors?.['minlength']">La contraseña debe tener al menos 8 caracteres</span>
-            </div>
-          </div>
 
-          <div class="form-group">
-            <div class="password-container">
-              <ion-item class="form-item">
-                <ion-label position="stacked">Confirmar Contraseña</ion-label>
-                <ion-input 
-                  formControlName="confirmPassword"
-                  [type]="showConfirmPassword ? 'text' : 'password'"
-                  placeholder="Confirma tu contraseña"
-                  [class.error]="registerForm.get('confirmPassword')?.invalid && registerForm.get('confirmPassword')?.touched">
-                </ion-input>
+            <div class="form-group">
+              <div class="password-container">
+                <ion-item class="form-item" lines="none">
+                  <ion-label position="stacked">Confirmar Contraseña</ion-label>
+                  <ion-input 
+                    formControlName="confirmPassword"
+                    [type]="showConfirmPassword ? 'text' : 'password'"
+                    placeholder="Confirma tu contraseña"
+                    [class.error]="registerForm.get('confirmPassword')?.invalid && registerForm.get('confirmPassword')?.touched">
+                  </ion-input>
+                </ion-item>
                 <ion-button 
                   fill="clear" 
-                  slot="end" 
                   (click)="togglePasswordVisibility('confirm')"
                   class="password-toggle-btn">
                   {{ showConfirmPassword ? '🙈' : '👁️' }}
                 </ion-button>
-              </ion-item>
+              </div>
+              <div class="error-text" *ngIf="registerForm.get('confirmPassword')?.invalid && registerForm.get('confirmPassword')?.touched">
+                <span *ngIf="registerForm.get('confirmPassword')?.errors?.['required']">Confirma tu contraseña</span>
+                <span *ngIf="registerForm.get('confirmPassword')?.errors?.['passwordMismatch']">Las contraseñas no coinciden</span>
+              </div>
             </div>
-            <div class="error-text" *ngIf="registerForm.get('confirmPassword')?.invalid && registerForm.get('confirmPassword')?.touched">
-              <span *ngIf="registerForm.get('confirmPassword')?.errors?.['required']">Confirma tu contraseña</span>
-              <span *ngIf="registerForm.get('confirmPassword')?.errors?.['passwordMismatch']">Las contraseñas no coinciden</span>
-            </div>
-          </div>
 
-          <ion-button 
-            type="submit" 
-            expand="block" 
-            [disabled]="registerForm.invalid || isLoading"
-            [class.loading]="isLoading"
-            class="submit-btn">
-            <ion-spinner name="crescent" *ngIf="isLoading"></ion-spinner>
-            <span *ngIf="!isLoading">Crear Cuenta</span>
-            <span *ngIf="isLoading">Creando cuenta...</span>
-          </ion-button>
-        </form>
-      </div>
-    </div>
-  </div>
-</ion-content>d">Contraseña</ion-label>
-            <ion-input 
-              formControlName="password"
-              [type]="showLoginPassword ? 'text' : 'password'"
-              placeholder="Ingresa tu contraseña"
-              [class.error]="loginForm.get('password')?.invalid && loginForm.get('password')?.touched">
-            </ion-input>
             <ion-button 
-              fill="clear" 
-              slot="end" 
-              (click)="togglePasswordVisibility('login')"
-              class="password-toggle-btn">
-              <ion-icon [name]="showLoginPassword ? 'eye-off-outline' : 'eye-outline'"></ion-icon>
+              type="submit" 
+              expand="block" 
+              [disabled]="registerForm.invalid || isLoading"
+              [class.loading]="isLoading"
+              class="submit-btn">
+              <span *ngIf="!isLoading">Crear Cuenta</span>
+              <span *ngIf="isLoading">Creando cuenta...</span>
             </ion-button>
-          </ion-item>
-          <div class="error-text" *ngIf="loginForm.get('password')?.invalid && loginForm.get('password')?.touched">
-            La contraseña es requerida
-          </div>
+          </form>
 
-          <ion-button 
-            type="submit" 
-            expand="block" 
-            [disabled]="loginForm.invalid || isLoading"
-            class="submit-btn">
-            <ion-spinner name="crescent" *ngIf="isLoading"></ion-spinner>
-            <span *ngIf="!isLoading">Ingresar al Portal</span>
-            <span *ngIf="isLoading">Ingresando...</span>
-          </ion-button>
-        </form>
-
-        <!-- Formulario de Registro -->
-        <form *ngIf="currentForm === 'register'" [formGroup]="registerForm" (ngSubmit)="onRegister()" class="auth-form">
-          <h2>Crear Cuenta</h2>
-          
-          <ion-item class="form-item">
-            <ion-label position="stacked">Nombre Completo</ion-label>
-            <ion-input 
-              formControlName="nombre"
-              type="text" 
-              placeholder="Ingresa tu nombre completo"
-              [class.error]="registerForm.get('nombre')?.invalid && registerForm.get('nombre')?.touched">
-            </ion-input>
-          </ion-item>
-          <div class="error-text" *ngIf="registerForm.get('nombre')?.invalid && registerForm.get('nombre')?.touched">
-            El nombre es requerido
-          </div>
-
-          <ion-item class="form-item">
-            <ion-label position="stacked">Correo Electrónico</ion-label>
-            <ion-input 
-              formControlName="correo"
-              type="email" 
-              placeholder="ejemplo@correo.com"
-              [class.error]="registerForm.get('correo')?.invalid && registerForm.get('correo')?.touched">
-            </ion-input>
-          </ion-item>
-          <div class="error-text" *ngIf="registerForm.get('correo')?.invalid && registerForm.get('correo')?.touched">
-            <span *ngIf="registerForm.get('correo')?.errors?.['required']">El correo es requerido</span>
-            <span *ngIf="registerForm.get('correo')?.errors?.['email']">Formato de correo inválido</span>
-          </div>
-
-          <ion-item class="form-item">
-            <ion-label position="stacked">Nombre de Usuario</ion-label>
-            <ion-input 
-              formControlName="usuario"
-              type="text" 
-              placeholder="Elige un nombre de usuario único"
-              [class.error]="registerForm.get('usuario')?.invalid && registerForm.get('usuario')?.touched">
-            </ion-input>
-          </ion-item>
-          <div class="error-text" *ngIf="registerForm.get('usuario')?.invalid && registerForm.get('usuario')?.touched">
-            El nombre de usuario es requerido
-          </div>
-
-          <ion-item class="form-item">
-            <ion-label position="stacked">Token de Acceso</ion-label>
-            <ion-input 
-              formControlName="token"
-              type="text" 
-              placeholder="Ingresa tu token de acceso"
-              [class.error]="registerForm.get('token')?.invalid && registerForm.get('token')?.touched">
-            </ion-input>
-          </ion-item>
-          <div class="token-help">Token proporcionado por el administrador del sistema</div>
-          <div class="error-text" *ngIf="registerForm.get('token')?.invalid && registerForm.get('token')?.touched">
-            <span *ngIf="registerForm.get('token')?.errors?.['required']">El token es requerido</span>
-            <span *ngIf="registerForm.get('token')?.errors?.['minlength']">El token debe tener al menos 6 caracteres</span>
-          </div>
-
-          <ion-item class="form-item">
-            <ion-label position="stacked">Contraseña</ion-label>
-            <ion-input 
-              formControlName="password"
-              [type]="showRegisterPassword ? 'text' : 'password'"
-              placeholder="Crea una contraseña segura"
-              [class.error]="registerForm.get('password')?.invalid && registerForm.get('password')?.touched"
-              (ionInput)="checkPasswordStrength()">
-            </ion-input>
-            <ion-button 
-              fill="clear" 
-              slot="end" 
-              (click)="togglePasswordVisibility('register')"
-              class="password-toggle-btn">
-              <ion-icon [name]="showRegisterPassword ? 'eye-off-outline' : 'eye-outline'"></ion-icon>
-            </ion-button>
-          </ion-item>
-          <div class="password-strength" [ngClass]="passwordStrength.class" *ngIf="registerForm.get('password')?.value">
-            {{ passwordStrength.text }}
-          </div>
-          <div class="error-text" *ngIf="registerForm.get('password')?.invalid && registerForm.get('password')?.touched">
-            <span *ngIf="registerForm.get('password')?.errors?.['required']">La contraseña es requerida</span>
-            <span *ngIf="registerForm.get('password')?.errors?.['minlength']">La contraseña debe tener al menos 8 caracteres</span>
-          </div>
-
-          <ion-item class="form-item">
-            <ion-label position="stacked">Confirmar Contraseña</ion-label>
-            <ion-input 
-              formControlName="confirmPassword"
-              [type]="showConfirmPassword ? 'text' : 'password'"
-              placeholder="Confirma tu contraseña"
-              [class.error]="registerForm.get('confirmPassword')?.invalid && registerForm.get('confirmPassword')?.touched">
-            </ion-input>
-            <ion-button 
-              fill="clear" 
-              slot="end" 
-              (click)="togglePasswordVisibility('confirm')"
-              class="password-toggle-btn">
-              <ion-icon [name]="showConfirmPassword ? 'eye-off-outline' : 'eye-outline'"></ion-icon>
-            </ion-button>
-          </ion-item>
-          <div class="error-text" *ngIf="registerForm.get('confirmPassword')?.invalid && registerForm.get('confirmPassword')?.touched">
-            <span *ngIf="registerForm.get('confirmPassword')?.errors?.['required']">Confirma tu contraseña</span>
-            <span *ngIf="registerForm.get('confirmPassword')?.errors?.['passwordMismatch']">Las contraseñas no coinciden</span>
-          </div>
-
-          <ion-button 
-            type="submit" 
-            expand="block" 
-            [disabled]="registerForm.invalid || isLoading"
-            class="submit-btn">
-            <ion-spinner name="crescent" *ngIf="isLoading"></ion-spinner>
-            <span *ngIf="!isLoading">Crear Cuenta</span>
-            <span *ngIf="isLoading">Creando cuenta...</span>
-          </ion-button>
-        </form>
+        </div> <!-- Fin form-content -->
       </div>
     </div>
   </div>

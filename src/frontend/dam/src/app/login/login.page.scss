@@ -1,61 +1,56 @@
 // ===================================================================
-// REPLICAR EXACTAMENTE EL DISEÑO HTML ORIGINAL EN IONIC
+// DISEÑO EXACTO DE LA IMAGEN - ESTILO MODERNO Y LIMPIO
 // ===================================================================
 
-// Variables exactas del diseño original
-:root {
-  --original-primary-gradient: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-  --original-secondary-gradient: linear-gradient(135deg, #4e54c8 0%, #8f94fb 100%);
-  --original-accent: #4e54c8;
-  --original-success: #3c3;
-  --original-error: #c33;
-  --original-medium: #ffc107;
-  --original-strong: #28a745;
-}
-
-// RESETEAR COMPLETAMENTE IONIC PARA ESTA PÁGINA
+// Resetear completamente Ionic para esta página
 app-login {
+  height: 100vh !important;
+  width: 100vw !important;
+  
   * {
     margin: 0 !important;
     padding: 0 !important;
     box-sizing: border-box !important;
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif !important;
   }
 
-  // Sobrescribir ion-content completamente
+  // Ocultar header completamente
+  ion-header {
+    display: none !important;
+  }
+
+  // Configurar ion-content para que replique el body del HTML original
   ion-content {
-    --background: transparent !important;
+    --background: linear-gradient(135deg, #667eea 0%, #764ba2 100%) !important;
     --color: inherit !important;
     --padding-top: 0 !important;
     --padding-bottom: 0 !important;
     --padding-start: 0 !important;
     --padding-end: 0 !important;
+    --offset-top: 0 !important;
+    --offset-bottom: 0 !important;
+    
+    min-height: 100vh !important;
+    display: flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    padding: 20px !important;
     
     .scroll-content,
     .inner-scroll {
       background: transparent !important;
       padding: 0 !important;
       margin: 0 !important;
+      height: 100% !important;
+      min-height: 100vh !important;
+      display: flex !important;
+      align-items: center !important;
+      justify-content: center !important;
     }
-  }
-
-  // Resetear header
-  ion-header {
-    display: none !important; // Ocultar header para replicar el original
-  }
-
-  // ESTILOS EXACTOS DEL BODY ORIGINAL
-  ion-content {
-    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif !important;
-    background: var(--original-primary-gradient) !important;
-    min-height: 100vh !important;
-    display: flex !important;
-    align-items: center !important;
-    justify-content: center !important;
-    padding: 20px !important;
   }
 }
 
-// CONTAINER EXACTO
+// CONTAINER PRINCIPAL - EXACTO A LA IMAGEN CON CENTRADO PERFECTO
 .container {
   background: rgba(255, 255, 255, 0.95) !important;
   border-radius: 20px !important;
@@ -65,15 +60,19 @@ app-login {
   max-width: 900px !important;
   min-height: 600px !important;
   display: flex !important;
-  position: relative !important;
-  margin: 0 !important;
+  //position: relative !important;
+  margin: auto !important;
   padding: 0 !important;
+  
+  // Asegurar centrado perfecto
+  align-self: center !important;
+  justify-self: center !important;
 }
 
-// WELCOME SECTION EXACTA
+// SECCIÓN IZQUIERDA (WELCOME) - DISEÑO DE LA IMAGEN
 .welcome-section {
   flex: 1 !important;
-  background: var(--original-secondary-gradient) !important;
+  background: linear-gradient(135deg, #4e54c8 0%, #8f94fb 100%) !important;
   padding: 60px 40px !important;
   display: flex !important;
   flex-direction: column !important;
@@ -85,6 +84,7 @@ app-login {
   margin: 0 !important;
   border-radius: 0 !important;
 
+  // Animación de partículas de fondo
   &::before {
     content: '' !important;
     position: absolute !important;
@@ -100,6 +100,13 @@ app-login {
   .welcome-content {
     position: relative !important;
     z-index: 2 !important;
+  }
+
+  .sensor-icon {
+    font-size: 4rem !important;
+    margin-bottom: 20px !important;
+    opacity: 0.8 !important;
+    display: block !important;
   }
 
   h1 {
@@ -118,13 +125,6 @@ app-login {
     color: white !important;
   }
 
-  .sensor-icon {
-    font-size: 4rem !important;
-    margin-bottom: 20px !important;
-    opacity: 0.8 !important;
-    display: block !important;
-  }
-
   .features {
     margin-top: 30px !important;
     font-size: 0.9rem !important;
@@ -137,15 +137,16 @@ app-login {
   }
 }
 
-// FORM SECTION EXACTA
+// SECCIÓN DERECHA (FORMULARIOS) - CON SCROLL INTERNO
 .form-section {
   flex: 1 !important;
   padding: 40px !important;
   display: flex !important;
   flex-direction: column !important;
-  justify-content: center !important;
   background: transparent !important;
   margin: 0 !important;
+  max-height: 100% !important; // Limitar altura para permitir scroll
+  overflow: hidden !important; // Ocultar overflow del contenedor padre
 }
 
 .form-container {
@@ -153,9 +154,40 @@ app-login {
   margin: 0 auto !important;
   width: 100% !important;
   padding: 0 !important;
+  display: flex !important;
+  flex-direction: column !important;
+  height: 100% !important;
+  max-height: 100% !important;
 }
 
-// FORM TOGGLE EXACTO
+// ÁREA DE FORMULARIOS CON SCROLL
+.form-content {
+  flex: 1 !important;
+  overflow-y: auto !important; // Permitir scroll vertical
+  max-height: calc(90vh - 200px) !important; // Altura máxima dejando espacio para toggle
+  padding-right: 10px !important; // Espacio para scrollbar
+
+  // Estilizar scrollbar
+  &::-webkit-scrollbar {
+    width: 6px !important;
+  }
+
+  &::-webkit-scrollbar-track {
+    background: #f1f1f1 !important;
+    border-radius: 10px !important;
+  }
+
+  &::-webkit-scrollbar-thumb {
+    background: #c1c1c1 !important;
+    border-radius: 10px !important;
+
+    &:hover {
+      background: #a8a8a8 !important;
+    }
+  }
+}
+
+// TOGGLE DE FORMULARIOS - ESTILO DE LA IMAGEN
 .form-toggle {
   display: flex !important;
   margin-bottom: 30px !important;
@@ -181,7 +213,7 @@ app-login {
     min-height: auto !important;
 
     &.active {
-      --background: var(--original-accent) !important;
+      --background: #4e54c8 !important;
       --color: white !important;
       --box-shadow: 0 2px 10px rgba(78, 84, 200, 0.3) !important;
     }
@@ -206,9 +238,14 @@ app-login {
   }
 }
 
-// FORM ITEMS - REPLICAR EXACTAMENTE EL INPUT ORIGINAL
-.form-item {
+// GRUPOS DE FORMULARIO
+.form-group {
   margin-bottom: 20px !important;
+}
+
+// ITEMS DE FORMULARIO - ESTILO NATIVO COMO LA IMAGEN
+.form-item {
+  margin-bottom: 15px !important;
   --background: transparent !important;
   --border-width: 0 !important;
   --padding-start: 0 !important;
@@ -231,7 +268,7 @@ app-login {
     --background: #f8f9fa !important;
     --color: #333 !important;
     --padding-start: 16px !important;
-    --padding-end: 16px !important;
+    --padding-end: 50px !important; // Espacio para botón de contraseña
     --padding-top: 14px !important;
     --padding-bottom: 14px !important;
     --border-radius: 10px !important;
@@ -246,7 +283,7 @@ app-login {
     &:focus,
     &:focus-within {
       --background: white !important;
-      border-color: var(--original-accent) !important;
+      border-color: #4e54c8 !important;
       box-shadow: 0 0 0 3px rgba(78, 84, 200, 0.1) !important;
       outline: none !important;
     }
@@ -259,6 +296,11 @@ app-login {
       color: #333 !important;
     }
   }
+}
+
+// CONTENEDOR DE CONTRASEÑA
+.password-container {
+  position: relative !important;
 
   .password-toggle-btn {
     position: absolute !important;
@@ -281,17 +323,12 @@ app-login {
   }
 }
 
-// INPUT CONTAINER PARA PASSWORDS
-.password-container {
-  position: relative !important;
-}
-
-// SUBMIT BUTTON EXACTO
+// BOTÓN DE ENVÍO - ESTILO DE LA IMAGEN
 .submit-btn {
   width: 100% !important;
   --padding-top: 16px !important;
   --padding-bottom: 16px !important;
-  --background: var(--original-secondary-gradient) !important;
+  --background: linear-gradient(135deg, #4e54c8 0%, #8f94fb 100%) !important;
   --color: white !important;
   --border-radius: 10px !important;
   font-size: 16px !important;
@@ -317,22 +354,28 @@ app-login {
     pointer-events: none !important;
   }
 
-  &.loading::after {
-    content: '' !important;
-    position: absolute !important;
-    top: 50% !important;
-    left: 50% !important;
-    width: 20px !important;
-    height: 20px !important;
-    margin: -10px 0 0 -10px !important;
-    border: 2px solid transparent !important;
-    border-top: 2px solid white !important;
-    border-radius: 50% !important;
-    animation: spin 1s infinite linear !important;
+  &.loading {
+    opacity: 0.7 !important;
+    pointer-events: none !important;
+    position: relative !important;
+
+    &::after {
+      content: '' !important;
+      position: absolute !important;
+      top: 50% !important;
+      left: 50% !important;
+      width: 20px !important;
+      height: 20px !important;
+      margin: -10px 0 0 -10px !important;
+      border: 2px solid transparent !important;
+      border-top: 2px solid white !important;
+      border-radius: 50% !important;
+      animation: spin 1s infinite linear !important;
+    }
   }
 }
 
-// MENSAJES EXACTOS
+// MENSAJES - ESTILO DE LA IMAGEN
 .message-card {
   margin-bottom: 20px !important;
   --background: transparent !important;
@@ -340,10 +383,10 @@ app-login {
 
   &.error ion-card-content {
     background: #fee !important;
-    color: var(--original-error) !important;
+    color: #c33 !important;
     padding: 12px !important;
     border-radius: 8px !important;
-    border-left: 4px solid var(--original-error) !important;
+    border-left: 4px solid #c33 !important;
     display: flex !important;
     align-items: center !important;
     gap: 10px !important;
@@ -351,16 +394,16 @@ app-login {
 
     ion-icon {
       font-size: 1.2rem !important;
-      color: var(--original-error) !important;
+      color: #c33 !important;
     }
   }
 
   &.success ion-card-content {
     background: #efe !important;
-    color: var(--original-success) !important;
+    color: #3c3 !important;
     padding: 12px !important;
     border-radius: 8px !important;
-    border-left: 4px solid var(--original-success) !important;
+    border-left: 4px solid #3c3 !important;
     display: flex !important;
     align-items: center !important;
     gap: 10px !important;
@@ -368,22 +411,22 @@ app-login {
 
     ion-icon {
       font-size: 1.2rem !important;
-      color: var(--original-success) !important;
+      color: #3c3 !important;
     }
   }
 }
 
-// ERROR TEXT
+// TEXTOS DE ERROR
 .error-text {
   font-size: 12px !important;
-  color: var(--original-error) !important;
+  color: #c33 !important;
   margin-bottom: 15px !important;
   padding-left: 16px !important;
   margin-top: 5px !important;
   display: block !important;
 }
 
-// TOKEN HELP
+// AYUDA DEL TOKEN
 .token-help {
   font-size: 12px !important;
   color: #6c757d !important;
@@ -392,7 +435,7 @@ app-login {
   padding-left: 16px !important;
 }
 
-// PASSWORD STRENGTH EXACTO
+// INDICADOR DE FUERZA DE CONTRASEÑA
 .password-strength {
   margin-top: 5px !important;
   margin-bottom: 15px !important;
@@ -404,15 +447,15 @@ app-login {
   }
 
   &.strength-medium {
-    color: var(--original-medium) !important;
+    color: #ffc107 !important;
   }
 
   &.strength-strong {
-    color: var(--original-strong) !important;
+    color: #28a745 !important;
   }
 }
 
-// ANIMACIONES EXACTAS
+// ANIMACIONES
 @keyframes fadeIn {
   from {
     opacity: 0 !important;
@@ -442,7 +485,7 @@ app-login {
   }
 }
 
-// RESPONSIVE EXACTO
+// RESPONSIVE - IGUAL A LA IMAGEN
 @media (max-width: 768px) {
   .container {
     flex-direction: column !important;
@@ -461,11 +504,4 @@ app-login {
   .form-section {
     padding: 30px 20px !important;
   }
-}
-
-// LOADING EFFECT
-.loading {
-  opacity: 0.7 !important;
-  pointer-events: none !important;
-  position: relative !important;
 }

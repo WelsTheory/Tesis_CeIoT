@@ -3,19 +3,34 @@
     <ion-buttons slot="start">
       <ion-menu-button></ion-menu-button>
     </ion-buttons>
-    <ion-title>Dashboard</ion-title>
+    <ion-title>Dashboard de Proyectos</ion-title>
     <ion-buttons slot="end">
+      <!-- Botón de logout mejorado -->
       <ion-button 
-        fill="clear" 
+        fill="outline" 
+        size="small"
         (click)="logout()"
-        color="primary">
-        <ion-icon name="log-out-outline" slot="icon-only"></ion-icon>
+        color="danger"
+        class="logout-btn">
+        <ion-icon name="log-out-outline" slot="start"></ion-icon>
+        Cerrar Sesión
       </ion-button>
     </ion-buttons>
   </ion-toolbar>
 </ion-header>
 
 <ion-content [fullscreen]="true">
+  
+  <!-- Pull to refresh -->
+  <ion-refresher slot="fixed" (ionRefresh)="refreshProjects($event)">
+    <ion-refresher-content
+      pullingIcon="chevron-down-circle-outline"
+      pullingText="Desliza para actualizar"
+      refreshingSpinner="circles"
+      refreshingText="Actualizando proyectos...">
+    </ion-refresher-content>
+  </ion-refresher>
+
   <!-- Loading State -->
   <div *ngIf="loading" class="loading-container">
     <ion-spinner name="crescent" color="primary"></ion-spinner>
@@ -33,12 +48,12 @@
       </div>
       <div class="stats-cards">
         <div class="stat-card">
-          <div class="stat-number">{{ projects.length }}</div>
+          <div class="stat-number">{{ getActiveProjectsCount() }}</div>
           <div class="stat-label">Proyectos Activos</div>
         </div>
         <div class="stat-card">
           <div class="stat-number">{{ projects.length }}/2</div>
-          <div class="stat-label">Límite de Proyectos</div>
+          <div class="stat-label">Total de Proyectos</div>
         </div>
       </div>
     </div>
@@ -79,7 +94,7 @@
 
     <!-- Projects Grid -->
     <div *ngIf="projects.length > 0" class="projects-grid">
-      <ion-card *ngFor="let project of projects" class="project-card">
+      <ion-card *ngFor="let project of projects" class="project-card" [class.disabled-project]="!project.activo">
         
         <!-- Card Header -->
         <ion-card-header>
@@ -92,47 +107,15 @@
                   <ion-label>{{ project.sensor }}</ion-label>
                 </ion-chip>
                 <ion-chip 
-                  [color]="project.estado === 'Activo' ? 'success' : 'medium'" 
+                  [color]="project.activo ? 'success' : 'medium'" 
                   outline="true">
                   <ion-icon 
-                    [name]="project.estado === 'Activo' ? 'checkmark-circle-outline' : 'pause-circle-outline'">
+                    [name]="project.activo ? 'checkmark-circle-outline' : 'pause-circle-outline'">
                   </ion-icon>
-                  <ion-label>{{ project.estado }}</ion-label>
+                  <ion-label>{{ project.activo ? 'Activo' : 'Deshabilitado' }}</ion-label>
                 </ion-chip>
               </div>
             </div>
-            
-            <!-- Actions Menu -->
-            <ion-button 
-              fill="clear" 
-              id="actions-{{ project.id }}"
-              class="actions-trigger">
-              <ion-icon name="ellipsis-vertical" slot="icon-only"></ion-icon>
-            </ion-button>
-            
-            <ion-popover 
-              [trigger]="'actions-' + project.id" 
-              triggerAction="click"
-              class="actions-popover">
-              <ng-template>
-                <ion-content>
-                  <ion-list>
-                    <ion-item button (click)="viewProject(project)">
-                      <ion-icon name="eye-outline" slot="start"></ion-icon>
-                      <ion-label>Ver Proyecto</ion-label>
-                    </ion-item>
-                    <ion-item button (click)="editProject(project)">
-                      <ion-icon name="settings-outline" slot="start"></ion-icon>
-                      <ion-label>Configurar</ion-label>
-                    </ion-item>
-                    <ion-item button (click)="confirmDeleteProject(project)" color="danger">
-                      <ion-icon name="trash-outline" slot="start"></ion-icon>
-                      <ion-label>Eliminar</ion-label>
-                    </ion-item>
-                  </ion-list>
-                </ion-content>
-              </ng-template>
-            </ion-popover>
           </div>
         </ion-card-header>
 
@@ -155,16 +138,63 @@
             </div>
           </div>
 
-          <!-- Action Buttons -->
-          <div class="card-actions">
-            <ion-button 
-              expand="block"
-              fill="outline"
-              (click)="viewProject(project)"
-              class="view-data-btn">
-              <ion-icon name="analytics" slot="start"></ion-icon>
-              Ver Datos en Tiempo Real
-            </ion-button>
+          <!-- Project Actions -->
+          <div class="project-actions">
+            
+            <!-- Primary Actions -->
+            <div class="primary-actions">
+              <ion-button 
+                expand="block"
+                fill="solid"
+                [disabled]="!project.activo"
+                (click)="viewProject(project)"
+                color="primary"
+                class="view-data-btn">
+                <ion-icon name="analytics" slot="start"></ion-icon>
+                Ver Datos
+              </ion-button>
+            </div>
+
+            <!-- Secondary Actions -->
+            <div class="secondary-actions">
+              
+              <!-- Edit Button -->
+              <ion-button 
+                fill="outline"
+                size="default"
+                (click)="openEditProjectModal(project)"
+                color="medium"
+                class="action-btn">
+                <ion-icon name="create-outline" slot="start"></ion-icon>
+                Editar
+              </ion-button>
+
+              <!-- Enable/Disable Button -->
+              <ion-button 
+                fill="outline"
+                size="default"
+                (click)="toggleProjectStatus(project)"
+                [color]="project.activo ? 'warning' : 'success'"
+                class="action-btn">
+                <ion-icon 
+                  [name]="project.activo ? 'pause-outline' : 'play-outline'" 
+                  slot="start">
+                </ion-icon>
+                {{ project.activo ? 'Deshabilitar' : 'Habilitar' }}
+              </ion-button>
+
+              <!-- Delete Button -->
+              <ion-button 
+                fill="outline"
+                size="default"
+                (click)="confirmDeleteProject(project)"
+                color="danger"
+                class="action-btn">
+                <ion-icon name="trash-outline" slot="start"></ion-icon>
+                Eliminar
+              </ion-button>
+              
+            </div>
           </div>
         </ion-card-content>
       </ion-card>
@@ -175,10 +205,153 @@
   <ion-modal [isOpen]="showCreateModal" (didDismiss)="closeCreateProjectModal()">
     <ng-template>
       <ion-header>
-        <ion-toolbar>
+        <ion-toolbar color="primary">
           <ion-title>Crear Nuevo Proyecto</ion-title>
           <ion-buttons slot="end">
-            <ion-button (click)="closeCreateProjectModal()" fill="clear">
+            <ion-button (click)="closeCreateProjectModal()" fill="clear" color="light">
+              <ion-icon name="close" slot="icon-only"></ion-icon>
+            </ion-button>
+          </ion-buttons>
+        </ion-toolbar>
+      </ion-header>
+      
+      <ion-content class="ion-padding">
+        <form [formGroup]="createProjectForm" (ngSubmit)="createProject()">
+          
+          <!-- Project Name -->
+          <ion-item class="form-item">
+            <ion-label position="stacked">Nombre del Proyecto *</ion-label>
+            <ion-input 
+              formControlName="nombre"
+              placeholder="Ej: Monitoreo Vibración Máquina"
+              (ionInput)="onProjectNameChange()">
+            </ion-input>
+          </ion-item>
+          <ion-note 
+            *ngIf="createProjectForm.get('nombre')?.invalid && createProjectForm.get('nombre')?.touched"
+            color="danger">
+            El nombre del proyecto es requerido (mínimo 3 caracteres)
+          </ion-note>
+
+          <!-- Sensor Selection -->
+          <ion-item class="form-item">
+            <ion-label position="stacked">Tipo de Sensor *</ion-label>
+            <ion-select 
+              formControlName="sensor"
+              (ionChange)="onSensorChange()"
+              placeholder="Selecciona el tipo de sensor">
+              <ion-select-option value="MPU">
+                MPU (Unidad de Procesamiento de Movimiento)
+              </ion-select-option>
+            </ion-select>
+          </ion-item>
+
+          <!-- Generated Topic Preview -->
+          <ion-item class="form-item">
+            <ion-label position="stacked">Tópico MQTT (Generado Automáticamente)</ion-label>
+            <ion-input 
+              [value]="getGeneratedTopic()"
+              readonly="true"
+              class="topic-preview">
+            </ion-input>
+            <ion-note slot="helper">
+              Se genera automáticamente basado en el nombre del proyecto y sensor
+            </ion-note>
+          </ion-item>
+
+          <!-- MQTT URL -->
+          <ion-item class="form-item">
+            <ion-label position="stacked">URL del Broker MQTT *</ion-label>
+            <ion-input 
+              formControlName="mqttUrl"
+              placeholder="mqtt://broker.ejemplo.com:1883">
+            </ion-input>
+          </ion-item>
+          <ion-note 
+            *ngIf="createProjectForm.get('mqttUrl')?.invalid && createProjectForm.get('mqttUrl')?.touched"
+            color="danger">
+            URL del broker MQTT es requerida
+          </ion-note>
+
+          <!-- Sensor Information -->
+          <ion-card *ngIf="createProjectForm.get('sensor')?.value" class="info-card">
+            <ion-card-header>
+              <ion-card-title color="primary">
+                <ion-icon name="information-circle" slot="start"></ion-icon>
+                Información del Sensor {{ createProjectForm.get('sensor')?.value }}
+              </ion-card-title>
+            </ion-card-header>
+            <ion-card-content>
+              <p><strong>Descripción:</strong> Sensor de movimiento con acelerómetro y giroscopio</p>
+              <p><strong>Parámetros:</strong> Ejes X, Y, Z (g)</p>
+              <p><strong>Aplicaciones:</strong> Detección de vibración, inclinación y movimiento</p>
+            </ion-card-content>
+          </ion-card>
+
+          <!-- Preview Card -->
+          <ion-card *ngIf="createProjectForm.get('nombre')?.value" class="preview-card">
+            <ion-card-header>
+              <ion-card-title color="success">
+                <ion-icon name="eye" slot="start"></ion-icon>
+                Vista Previa del Proyecto
+              </ion-card-title>
+            </ion-card-header>
+            <ion-card-content>
+              <div class="preview-details">
+                <p><strong>Nombre:</strong> {{ createProjectForm.get('nombre')?.value }}</p>
+                <p><strong>Sensor:</strong> {{ createProjectForm.get('sensor')?.value || 'No seleccionado' }}</p>
+                <p><strong>Tópico:</strong> <code>{{ getGeneratedTopic() }}</code></p>
+                <p><strong>URL MQTT:</strong> {{ getFullMqttUrl() }}</p>
+              </div>
+            </ion-card-content>
+          </ion-card>
+
+          <!-- Warning -->
+          <ion-card *ngIf="projects.length >= 2" color="warning">
+            <ion-card-content>
+              <div class="warning-content">
+                <ion-icon name="warning" size="large"></ion-icon>
+                <div>
+                  <h4>Límite Alcanzado</h4>
+                  <p>Has alcanzado el límite máximo de 2 proyectos por usuario.</p>
+                </div>
+              </div>
+            </ion-card-content>
+          </ion-card>
+
+          <!-- Actions -->
+          <div class="form-actions">
+            <ion-button 
+              expand="block"
+              fill="outline"
+              (click)="closeCreateProjectModal()"
+              color="medium">
+              <ion-icon name="close" slot="start"></ion-icon>
+              Cancelar
+            </ion-button>
+            <ion-button 
+              expand="block"
+              type="submit"
+              [disabled]="createProjectForm.invalid || projects.length >= 2 || isCreatingProject"
+              color="primary">
+              <ion-spinner *ngIf="isCreatingProject" name="crescent" slot="start"></ion-spinner>
+              <ion-icon *ngIf="!isCreatingProject" name="add" slot="start"></ion-icon>
+              {{ isCreatingProject ? 'Creando...' : 'Crear Proyecto' }}
+            </ion-button>
+          </div>
+        </form>
+      </ion-content>
+    </ng-template>
+  </ion-modal>
+
+  <!-- Edit Project Modal -->
+  <ion-modal [isOpen]="showEditModal" (didDismiss)="closeEditProjectModal()">
+    <ng-template>
+      <ion-header>
+        <ion-toolbar color="primary">
+          <ion-title>Editar Proyecto</ion-title>
+          <ion-buttons slot="end">
+            <ion-button (click)="closeEditProjectModal()" fill="clear" color="light">
               <ion-icon name="close" slot="icon-only"></ion-icon>
             </ion-button>
           </ion-buttons>
@@ -186,7 +359,7 @@
       </ion-header>
       
       <ion-content>
-        <form [formGroup]="createProjectForm" (ngSubmit)="createProject()" class="create-form">
+        <form [formGroup]="editProjectForm" (ngSubmit)="updateProject()" class="edit-form">
           <div class="form-content">
             
             <!-- Project Name -->
@@ -194,60 +367,37 @@
               <ion-label position="stacked">Nombre del Proyecto *</ion-label>
               <ion-input 
                 formControlName="nombre"
-                placeholder="Ej: Monitoreo de Vibración Máquina"
-                [class.ion-invalid]="createProjectForm.get('nombre')?.invalid && createProjectForm.get('nombre')?.touched"
-                [class.ion-valid]="createProjectForm.get('nombre')?.valid && createProjectForm.get('nombre')?.touched">
+                placeholder="Nombre del proyecto"
+                [class.ion-invalid]="editProjectForm.get('nombre')?.invalid && editProjectForm.get('nombre')?.touched"
+                [class.ion-valid]="editProjectForm.get('nombre')?.valid && editProjectForm.get('nombre')?.touched">
               </ion-input>
               <ion-note 
                 slot="error" 
-                *ngIf="createProjectForm.get('nombre')?.invalid && createProjectForm.get('nombre')?.touched">
+                *ngIf="editProjectForm.get('nombre')?.invalid && editProjectForm.get('nombre')?.touched">
                 El nombre del proyecto es requerido
               </ion-note>
             </ion-item>
 
-            <!-- Sensor Type -->
+            <!-- Sensor Type (readonly) -->
             <ion-item class="form-item">
               <ion-label position="stacked">Tipo de Sensor</ion-label>
-              <ion-select 
+              <ion-input 
                 formControlName="sensor"
-                placeholder="Selecciona el tipo de sensor">
-                <ion-select-option value="MPU">MPU (Unidad de Procesamiento de Movimiento)</ion-select-option>
-              </ion-select>
+                readonly="true"
+                class="readonly-input">
+              </ion-input>
+              <ion-note>El tipo de sensor no puede modificarse una vez creado el proyecto</ion-note>
             </ion-item>
 
-            <!-- Sensor Description -->
-            <ion-card class="info-card">
-              <ion-card-content>
-                <div class="sensor-info">
-                  <ion-icon name="information-circle" color="primary"></ion-icon>
-                  <div>
-                    <h4>Sensor MPU</h4>
-                    <p>Sensor de movimiento con acelerómetro y giroscopio que proporciona datos en los ejes X, Y, Z para detección de vibración, inclinación y movimiento.</p>
-                    <div class="parameters">
-                      <ion-chip outline="true" color="primary">
-                        <ion-label>Parámetro X</ion-label>
-                      </ion-chip>
-                      <ion-chip outline="true" color="primary">
-                        <ion-label>Parámetro Y</ion-label>
-                      </ion-chip>
-                      <ion-chip outline="true" color="primary">
-                        <ion-label>Parámetro Z</ion-label>
-                      </ion-chip>
-                    </div>
-                  </div>
-                </div>
-              </ion-card-content>
-            </ion-card>
-
-            <!-- Limit Warning -->
-            <ion-card *ngIf="projects.length >= 2" color="warning" class="warning-card">
-              <ion-card-content>
-                <div class="warning-content">
-                  <ion-icon name="warning"></ion-icon>
-                  <p>Has alcanzado el límite máximo de 2 proyectos por usuario. Para crear un nuevo proyecto, debes eliminar uno existente.</p>
-                </div>
-              </ion-card-content>
-            </ion-card>
+            <!-- Project Status -->
+            <ion-item class="form-item">
+              <ion-label>Estado del Proyecto</ion-label>
+              <ion-toggle 
+                formControlName="activo"
+                slot="end"
+                [checked]="editProjectForm.get('activo')?.value">
+              </ion-toggle>
+            </ion-item>
 
           </div>
 
@@ -256,17 +406,17 @@
             <ion-button 
               expand="block"
               fill="clear"
-              (click)="closeCreateProjectModal()"
+              (click)="closeEditProjectModal()"
               class="cancel-btn">
               Cancelar
             </ion-button>
             <ion-button 
               expand="block"
               type="submit"
-              [disabled]="createProjectForm.invalid || projects.length >= 2 || isCreatingProject"
-              class="create-btn">
-              <ion-spinner *ngIf="isCreatingProject" name="crescent"></ion-spinner>
-              <span *ngIf="!isCreatingProject">Crear Proyecto</span>
+              [disabled]="editProjectForm.invalid || isUpdatingProject"
+              class="update-btn">
+              <ion-spinner *ngIf="isUpdatingProject" name="crescent"></ion-spinner>
+              <span *ngIf="!isUpdatingProject">Actualizar Proyecto</span>
             </ion-button>
           </div>
         </form>

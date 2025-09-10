@@ -6,7 +6,8 @@ import {
   IonContent, IonHeader, IonTitle, IonToolbar, IonButtons, IonMenuButton,
   IonButton, IonIcon, IonSpinner, IonCard, IonCardHeader, IonCardTitle,
   IonCardContent, IonChip, IonLabel, IonModal, IonItem, IonInput, IonSelect,
-  IonSelectOption, IonNote, IonPopover, IonList, AlertController, ToastController
+  IonSelectOption, IonNote, IonRefresher, IonRefresherContent, IonToggle,
+  AlertController, ToastController, LoadingController
 } from '@ionic/angular/standalone';
 
 // Interfaces
@@ -16,7 +17,7 @@ interface Project {
   sensor: string;
   fechaCreacion: Date;
   ultimaLectura: string;
-  estado: 'Activo' | 'Inactivo';
+  activo: boolean; // Campo para habilitar/deshabilitar
   topico: string;
   enlaceTopico?: string;
 }
@@ -26,6 +27,11 @@ interface CreateProjectData {
   sensor: string;
   topico?: string;
   enlaceTopico?: string;
+}
+
+interface UpdateProjectData {
+  nombre: string;
+  activo: boolean;
 }
 
 @Component({
@@ -38,7 +44,7 @@ interface CreateProjectData {
     IonContent, IonHeader, IonTitle, IonToolbar, IonButtons, IonMenuButton,
     IonButton, IonIcon, IonSpinner, IonCard, IonCardHeader, IonCardTitle,
     IonCardContent, IonChip, IonLabel, IonModal, IonItem, IonInput, IonSelect,
-    IonSelectOption, IonNote, IonPopover, IonList
+    IonSelectOption, IonNote, IonRefresher, IonRefresherContent, IonToggle
   ]
 })
 export class HomePage implements OnInit {
@@ -46,18 +52,33 @@ export class HomePage implements OnInit {
   // Properties
   loading = true;
   projects: Project[] = [];
+  
+  // Modals
   showCreateModal = false;
-  isCreatingProject = false;
+  showEditModal = false;
+  
+  // Forms
   createProjectForm!: FormGroup;
+  editProjectForm!: FormGroup;
+  
+  // Loading states
+  isCreatingProject = false;
+  isUpdatingProject = false;
+  
+  // Edit project data
+  editingProject: Project | null = null;
+  
+  // User data
   currentUser: any = null;
 
   constructor(
     private formBuilder: FormBuilder,
     private router: Router,
     private alertController: AlertController,
-    private toastController: ToastController
+    private toastController: ToastController,
+    private loadingController: LoadingController
   ) {
-    this.initializeForm();
+    this.initializeForms();
   }
 
   ngOnInit() {
@@ -65,21 +86,31 @@ export class HomePage implements OnInit {
     this.getCurrentUser();
   }
 
-  // Initialize reactive form
-  private initializeForm() {
+  // Initialize reactive forms
+  private initializeForms() {
     this.createProjectForm = this.formBuilder.group({
       nombre: ['', [Validators.required, Validators.minLength(3), Validators.maxLength(100)]],
       sensor: ['MPU', [Validators.required]]
+    });
+
+    this.editProjectForm = this.formBuilder.group({
+      nombre: ['', [Validators.required, Validators.minLength(3), Validators.maxLength(100)]],
+      sensor: ['', [Validators.required]],
+      activo: [true]
     });
   }
 
   // Get current user information
   private getCurrentUser() {
-    // Aquí obtienes la información del usuario del localStorage o servicio
     const userData = localStorage.getItem('user');
     if (userData) {
       this.currentUser = JSON.parse(userData);
     }
+  }
+
+  // Get count of active projects
+  getActiveProjectsCount(): number {
+    return this.projects.filter(project => project.activo).length;
   }
 
   // Load user projects from API
@@ -87,10 +118,10 @@ export class HomePage implements OnInit {
     try {
       this.loading = true;
       
-      // Simulación de datos - reemplazar con llamada real al API
+      // Simulate API call
       await this.simulateApiCall();
       
-      // Datos de ejemplo
+      // Sample data with active/inactive projects
       this.projects = [
         {
           id: 1,
@@ -98,7 +129,7 @@ export class HomePage implements OnInit {
           sensor: 'MPU',
           fechaCreacion: new Date('2024-09-01'),
           ultimaLectura: '2024-09-08 10:30:00',
-          estado: 'Activo',
+          activo: true,
           topico: 'casa/movimiento'
         },
         {
@@ -107,12 +138,12 @@ export class HomePage implements OnInit {
           sensor: 'MPU',
           fechaCreacion: new Date('2024-08-15'),
           ultimaLectura: '2024-09-08 10:25:00',
-          estado: 'Activo',
+          activo: false, // Project disabled
           topico: 'fabrica/maquina1/vibracion'
         }
       ];
 
-      // Aquí harías la llamada real al API:
+      // Real API call would be:
       /*
       const response = await this.projectService.getUserProjects();
       this.projects = response.data;
@@ -132,6 +163,10 @@ export class HomePage implements OnInit {
       setTimeout(() => resolve(), 1000);
     });
   }
+
+  // ===================================================================
+  // CREATE PROJECT METHODS
+  // ===================================================================
 
   // Open create project modal
   openCreateProjectModal() {
@@ -154,6 +189,7 @@ export class HomePage implements OnInit {
   // Create new project
   async createProject() {
     if (this.createProjectForm.invalid || this.projects.length >= 2) {
+      this.markFormGroupTouched(this.createProjectForm);
       return;
     }
 
@@ -161,15 +197,14 @@ export class HomePage implements OnInit {
       this.isCreatingProject = true;
       
       const formData = this.createProjectForm.value;
-      
-      // Generate automatic topic name
-      const topicName = this.generateTopicName(formData.nombre);
+      const topicName = this.getGeneratedTopic();
+      const fullMqttUrl = this.getFullMqttUrl();
       
       const projectData: CreateProjectData = {
         nombre: formData.nombre,
         sensor: formData.sensor,
         topico: topicName,
-        enlaceTopico: `mqtt://broker.example.com:1883/${topicName}`
+        enlaceTopico: fullMqttUrl
       };
 
       // Simulate API call
@@ -177,23 +212,22 @@ export class HomePage implements OnInit {
 
       // Create new project object
       const newProject: Project = {
-        id: this.projects.length + 1,
+        id: Date.now(), // Use timestamp as ID for demo
         nombre: projectData.nombre,
         sensor: projectData.sensor,
         fechaCreacion: new Date(),
         ultimaLectura: 'Sin lecturas',
-        estado: 'Activo',
+        activo: true, // New projects are active by default
         topico: projectData.topico!,
         enlaceTopico: projectData.enlaceTopico
       };
 
-      // Add to projects array
       this.projects.push(newProject);
 
-      // Aquí harías la llamada real al API:
+      // Real API call:
       /*
       const response = await this.projectService.createProject(projectData);
-      await this.loadUserProjects(); // Reload projects
+      await this.loadUserProjects();
       */
 
       await this.showToast('Proyecto creado exitosamente', 'success');
@@ -207,32 +241,148 @@ export class HomePage implements OnInit {
     }
   }
 
-  // Generate topic name from project name
-  private generateTopicName(projectName: string): string {
-    return projectName
-      .toLowerCase()
-      .replace(/\s+/g, '_')
-      .replace(/[^a-z0-9_]/g, '')
-      .substring(0, 50);
+  // ===================================================================
+  // EDIT PROJECT METHODS
+  // ===================================================================
+
+  // Open edit project modal
+  openEditProjectModal(project: Project) {
+    this.editingProject = project;
+    this.showEditModal = true;
+    
+    // Populate form with current project data
+    this.editProjectForm.patchValue({
+      nombre: project.nombre,
+      sensor: project.sensor,
+      activo: project.activo
+    });
   }
 
-  // View project details
-  viewProject(project: Project) {
-    // Navigate to project detail page
-    this.router.navigate(['/project', project.id]);
+  // Close edit project modal
+  closeEditProjectModal() {
+    this.showEditModal = false;
+    this.editProjectForm.reset();
+    this.editingProject = null;
+    this.isUpdatingProject = false;
   }
 
-  // Edit project
-  editProject(project: Project) {
-    // Navigate to project edit page
-    this.router.navigate(['/project', project.id, 'edit']);
+  // Update project
+  async updateProject() {
+    if (this.editProjectForm.invalid || !this.editingProject) {
+      return;
+    }
+
+    try {
+      this.isUpdatingProject = true;
+      
+      const formData = this.editProjectForm.value;
+      const updateData: UpdateProjectData = {
+        nombre: formData.nombre,
+        activo: formData.activo
+      };
+
+      // Simulate API call
+      await this.simulateApiCall();
+
+      // Update project in array
+      const projectIndex = this.projects.findIndex(p => p.id === this.editingProject!.id);
+      if (projectIndex !== -1) {
+        this.projects[projectIndex] = {
+          ...this.projects[projectIndex],
+          nombre: updateData.nombre,
+          activo: updateData.activo
+        };
+      }
+
+      // Real API call:
+      /*
+      await this.projectService.updateProject(this.editingProject.id, updateData);
+      await this.loadUserProjects();
+      */
+
+      await this.showToast('Proyecto actualizado exitosamente', 'success');
+      this.closeEditProjectModal();
+
+    } catch (error) {
+      console.error('Error updating project:', error);
+      await this.showToast('Error al actualizar el proyecto', 'danger');
+    } finally {
+      this.isUpdatingProject = false;
+    }
   }
+
+  // ===================================================================
+  // PROJECT STATUS METHODS
+  // ===================================================================
+
+  // Toggle project active status
+  async toggleProjectStatus(project: Project) {
+    const action = project.activo ? 'deshabilitar' : 'habilitar';
+    const confirmMessage = `¿Estás seguro de que deseas ${action} el proyecto "${project.nombre}"?`;
+    
+    const alert = await this.alertController.create({
+      header: `${action.charAt(0).toUpperCase() + action.slice(1)} Proyecto`,
+      message: confirmMessage,
+      buttons: [
+        {
+          text: 'Cancelar',
+          role: 'cancel'
+        },
+        {
+          text: action.charAt(0).toUpperCase() + action.slice(1),
+          handler: async () => {
+            await this.updateProjectStatus(project, !project.activo);
+          }
+        }
+      ]
+    });
+
+    await alert.present();
+  }
+
+  // Update project status
+  private async updateProjectStatus(project: Project, newStatus: boolean) {
+    try {
+      const loading = await this.loadingController.create({
+        message: newStatus ? 'Habilitando proyecto...' : 'Deshabilitando proyecto...',
+        duration: 2000
+      });
+      await loading.present();
+
+      // Simulate API call
+      await this.simulateApiCall();
+
+      // Update project status
+      const projectIndex = this.projects.findIndex(p => p.id === project.id);
+      if (projectIndex !== -1) {
+        this.projects[projectIndex].activo = newStatus;
+      }
+
+      // Real API call:
+      /*
+      await this.projectService.updateProjectStatus(project.id, newStatus);
+      */
+
+      await loading.dismiss();
+      
+      const message = newStatus ? 'Proyecto habilitado exitosamente' : 'Proyecto deshabilitado exitosamente';
+      await this.showToast(message, 'success');
+
+    } catch (error) {
+      console.error('Error updating project status:', error);
+      await this.showToast('Error al cambiar el estado del proyecto', 'danger');
+    }
+  }
+
+  // ===================================================================
+  // DELETE PROJECT METHODS
+  // ===================================================================
 
   // Confirm delete project
   async confirmDeleteProject(project: Project) {
     const alert = await this.alertController.create({
       header: 'Confirmar Eliminación',
-      message: `¿Estás seguro de que deseas eliminar el proyecto "${project.nombre}"? Esta acción no se puede deshacer.`,
+      message: `¿Estás seguro de que deseas eliminar el proyecto "${project.nombre}"? Esta acción no se puede deshacer y se perderán todos los datos asociados.`,
       buttons: [
         {
           text: 'Cancelar',
@@ -242,6 +392,7 @@ export class HomePage implements OnInit {
         {
           text: 'Eliminar',
           role: 'destructive',
+          cssClass: 'danger',
           handler: () => {
             this.deleteProject(project);
           }
@@ -255,24 +406,58 @@ export class HomePage implements OnInit {
   // Delete project
   async deleteProject(project: Project) {
     try {
+      const loading = await this.loadingController.create({
+        message: 'Eliminando proyecto...',
+        duration: 3000
+      });
+      await loading.present();
+
       // Simulate API call
       await this.simulateApiCall();
 
       // Remove from array
       this.projects = this.projects.filter(p => p.id !== project.id);
 
-      // Aquí harías la llamada real al API:
+      // Real API call:
       /*
       await this.projectService.deleteProject(project.id);
-      await this.loadUserProjects(); // Reload projects
+      await this.loadUserProjects();
       */
 
+      await loading.dismiss();
       await this.showToast('Proyecto eliminado exitosamente', 'success');
 
     } catch (error) {
       console.error('Error deleting project:', error);
       await this.showToast('Error al eliminar el proyecto', 'danger');
     }
+  }
+
+  // ===================================================================
+  // NAVIGATION METHODS
+  // ===================================================================
+
+  // View project details
+  viewProject(project: Project) {
+    if (!project.activo) {
+      this.showToast('El proyecto está deshabilitado. Habilítalo para ver los datos.', 'warning');
+      return;
+    }
+    // Navigate to project detail page
+    this.router.navigate(['/project', project.id]);
+  }
+
+  // ===================================================================
+  // UTILITY METHODS
+  // ===================================================================
+
+  // Generate topic name from project name
+  private generateTopicName(projectName: string): string {
+    return projectName
+      .toLowerCase()
+      .replace(/\s+/g, '_')
+      .replace(/[^a-z0-9_]/g, '')
+      .substring(0, 50);
   }
 
   // Show limit alert
@@ -321,13 +506,23 @@ export class HomePage implements OnInit {
         },
         {
           text: 'Cerrar Sesión',
-          handler: () => {
+          cssClass: 'danger',
+          handler: async () => {
+            const loading = await this.loadingController.create({
+              message: 'Cerrando sesión...',
+              duration: 1500
+            });
+            await loading.present();
+
             // Clear user data
             localStorage.removeItem('user');
             localStorage.removeItem('token');
+            localStorage.removeItem('authToken');
+            
+            await loading.dismiss();
             
             // Navigate to login
-            this.router.navigate(['/login']);
+            this.router.navigate(['/login'], { replaceUrl: true });
           }
         }
       ]
@@ -336,11 +531,56 @@ export class HomePage implements OnInit {
     await alert.present();
   }
 
-  // Refresh projects
+  // Refresh projects (pull to refresh)
   async refreshProjects(event?: any) {
-    await this.loadUserProjects();
-    if (event) {
-      event.target.complete();
+    try {
+      await this.loadUserProjects();
+      await this.showToast('Proyectos actualizados', 'success');
+    } catch (error) {
+      console.error('Error refreshing projects:', error);
+      await this.showToast('Error al actualizar proyectos', 'danger');
+    } finally {
+      if (event) {
+        event.target.complete();
+      }
     }
+  }
+
+  // ===================================================================
+  // FORM VALIDATION HELPERS
+  // ===================================================================
+
+  // Mark all form fields as touched for validation display
+  private markFormGroupTouched(formGroup: FormGroup) {
+    Object.keys(formGroup.controls).forEach(key => {
+      const control = formGroup.get(key);
+      control?.markAsTouched();
+    });
+  }
+
+  // Check if form field has error and is touched
+  isFieldInvalid(formGroup: FormGroup, fieldName: string): boolean {
+    const field = formGroup.get(fieldName);
+    return !!(field && field.invalid && field.touched);
+  }
+
+  // Get form field error message
+  getFieldErrorMessage(formGroup: FormGroup, fieldName: string): string {
+    const field = formGroup.get(fieldName);
+    if (!field || !field.errors || !field.touched) {
+      return '';
+    }
+
+    if (field.errors['required']) {
+      return `${fieldName} es requerido`;
+    }
+    if (field.errors['minlength']) {
+      return `${fieldName} debe tener al menos ${field.errors['minlength'].requiredLength} caracteres`;
+    }
+    if (field.errors['maxlength']) {
+      return `${fieldName} no puede exceder ${field.errors['maxlength'].requiredLength} caracteres`;
+    }
+
+    return 'Campo inválido';
   }
 }

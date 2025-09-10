@@ -48,7 +48,7 @@ export interface UserInfoResponse {
 })
 export class RegisterService {
   
-  private apiUrl = 'http://localhost:3000'; // Ajustar según tu configuración
+  private apiUrl = 'http://localhost:8000'; // Ajustar según tu configuración
   private httpOptions = {
     headers: new HttpHeaders({
       'Content-Type': 'application/json'

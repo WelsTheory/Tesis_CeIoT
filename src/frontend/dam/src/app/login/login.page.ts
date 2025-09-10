@@ -8,6 +8,7 @@ import {
 } from '@ionic/angular/standalone';
 import { Router } from '@angular/router';
 import { LoginService } from '../services/login.service';
+import { RegisterService } from '../services/register.service';
 
 // Interfaz para la respuesta del login
 interface LoginResponse {
@@ -71,7 +72,8 @@ export class LoginPage implements OnInit {
   constructor(
     private formBuilder: FormBuilder,
     private loginService: LoginService,
-    private router: Router
+    private router: Router,
+    private registerService: RegisterService
   ) {
     this.initializeForms();
   }
@@ -292,66 +294,89 @@ export class LoginPage implements OnInit {
   }
 
   /**
-   * Maneja el envío del formulario de registro
-   */
-  async onRegister(): Promise<void> {
-    if (this.registerForm.invalid) {
-      this.markFormGroupTouched(this.registerForm);
+ * Maneja el envío del formulario de registro
+ */
+async onRegister(): Promise<void> {
+  if (this.registerForm.invalid) {
+    this.markFormGroupTouched(this.registerForm);
+    return;
+  }
+
+  this.isLoading = true;
+  this.clearMessages();
+
+  try {
+    const formData: RegisterData = this.registerForm.value;
+    
+    // Validaciones adicionales del lado del cliente
+    const confirmPassword = this.registerForm.get('confirmPassword')?.value;
+    if (formData.password !== confirmPassword) {
+      this.showError('Las contraseñas no coinciden');
       return;
     }
 
-    this.isLoading = true;
-    this.clearMessages();
-
-    try {
-      const formData: RegisterData = this.registerForm.value;
-      
-      // Validaciones adicionales del lado del cliente
-      const confirmPassword = this.registerForm.get('confirmPassword')?.value;
-      if (formData.password !== confirmPassword) {
-        this.showError('Las contraseñas no coinciden');
-        return;
-      }
-
-      // Validar email básico
-      const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-      if (!emailRegex.test(formData.correo)) {
-        this.showError('El formato del correo electrónico es inválido');
-        return;
-      }
-
-      // Simular llamada a API de registro
-      const response = await this.registerUser(formData);
-      
-      if (response.success) {
-        this.showSuccess('¡Registro exitoso! Ya puedes iniciar sesión.');
-        
-        // Limpiar datos de borrador
-        this.clearRegistrationData();
-        
-        // Cambiar al formulario de login después del registro
-        setTimeout(() => {
-          this.showLogin();
-          this.registerForm.reset();
-        }, 2000);
-      } else {
-        this.showError(response.message || 'Error al registrar usuario');
-      }
-
-    } catch (error: any) {
-      console.error('Error en registro:', error);
-      
-      if (error.status === 409) {
-        this.showError('El usuario o correo ya existe');
-      } else if (error.status === 400) {
-        this.showError('Datos inválidos. Verifica la información ingresada.');
-      } else {
-        this.showError('Error del servidor. Inténtelo más tarde.');
-      }
-    } finally {
-      this.isLoading = false;
+    // Validar email básico
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(formData.correo)) {
+      this.showError('El formato del correo electrónico es inválido');
+      return;
     }
+
+    // LLAMADA REAL AL API (no simulación)
+    const response = await this.registerUserReal(formData);
+    
+    if (response.success) {
+      this.showSuccess('¡Registro exitoso! Ya puedes iniciar sesión.');
+      
+      // Limpiar datos de borrador
+      this.clearRegistrationData();
+      
+      // Cambiar al formulario de login después del registro
+      setTimeout(() => {
+        this.showLogin();
+        this.registerForm.reset();
+      }, 2000);
+    } else {
+      this.showError(response.message || 'Error al registrar usuario');
+    }
+
+  } catch (error: any) {
+    console.error('Error en registro:', error);
+    
+    if (error.status === 409) {
+      this.showError('El usuario o correo ya existe');
+    } else if (error.status === 400) {
+      this.showError('Datos inválidos. Verifica la información ingresada.');
+    } else if (error.status === 403) {
+      this.showError('Token de acceso inválido');
+    } else if (error.status === 0) {
+      this.showError('Error de conexión. Verifique que el backend esté ejecutándose.');
+    } else {
+      this.showError('Error del servidor. Inténtelo más tarde.');
+    }
+  } finally {
+    this.isLoading = false;
   }
+}
+
+/**
+ * Llama al API real de registro (reemplaza la simulación)
+ */
+private async registerUserReal(userData: RegisterData): Promise<{success: boolean, message?: string}> {
+  return new Promise((resolve, reject) => {
+    // Usar el RegisterService que ya existe
+    this.registerService.register(userData).subscribe({
+      next: (response) => {
+        console.log('Respuesta del servidor:', response);
+        resolve(response);
+      },
+      error: (error) => {
+        console.error('Error del API:', error);
+        reject(error);
+      }
+    });
+  });
+}
 
   /**
    * Simula el registro de usuario (implementar con tu API)
